@@ -1,0 +1,42 @@
+CREATE TABLE py_servcie (
+	 user_id serial PRIMARY KEY,
+	Date date NOT NULL,	 
+-- 	Date VARCHAR ( 50 ) NOT NULL,
+	CapabilitiesService float,
+	Icapabilities	float,
+	APIService	float,
+	UIService	float,
+	ExAPIService	float,
+	PerformancesService	float,
+	BCapabilitiesService	float,
+	CCTVService	float,
+	Totalcosts	float,
+	IcapabilitiesService	float,
+	NetService	float,
+	AppService	float,
+	YieldService	float,
+	GateService	float,
+	Services float,
+	Source VARCHAR ( 50 ) NOT NULL
+);
+
+******************prduct service***********
+
+CREATE TABLE py_product (
+	
+	user_id serial PRIMARY KEY,
+	Date date NOT NULL,	 
+	Capabilities float,
+	Icapabilities float,
+	API float,
+	UI float,
+	ExAPI float,
+	Performances float,
+	Bcapabilities float,
+	CCTV float,
+	Totalcosts float,
+	ProductTrial float,
+	ProductCapabilities float,
+	Source VARCHAR ( 50 ) NOT NULL
+);
+
