@@ -1,5 +1,21 @@
-SELECT *
-FROM "aws-costs"."normalized_cost"
-WHERE 
-    line_Item_usage_start_date IS NOT NULL AND 
-    NOT REGEXP_LIKE(line_Item_usage_start_date, '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$')
+SELECT 
+    date AS "Date",
+    SUM(CAST(line_item_unblended_cost AS double)) AS "Total Cost"
+FROM 
+    "aws-costs"."normalized_cost"
+GROUP BY 
+    date
+ORDER BY 
+    date;
+
+UNION ALL
+
+SELECT 
+    DATE(from_iso8601_timestamp(line_Item_usage_start_date)) AS "Date",
+    SUM(CAST(line_item_unblended_cost AS double)) AS "Total Cost"
+FROM 
+    "aws-costs"."normalized_cost"
+GROUP BY 
+    DATE(from_iso8601_timestamp(line_Item_usage_start_date))
+ORDER BY 
+    DATE(from_iso8601_timestamp(line_Item_usage_start_date));
