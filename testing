@@ -1,11 +1,12 @@
-SELECT
-    DATE(line_Item_usage_start_date) AS usage_date,
-    rt_user_product,
-    SUM(line_item_unblended_cost) AS total_cost
-FROM
-    your_table_name
-GROUP BY
-    DATE(line_Item_usage_start_date),
-    rt_user_product
-ORDER BY
-    usage_date, rt_user_product;
+SELECT 
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)) AS "Date", 
+    COALESCE(NULLIF(rt_user_product, ''), 'no-product') AS "Product",
+    SUM(CAST(line_item_unblended_cost AS double)) AS "Total Cost"
+FROM 
+    "aws-costs"."normalized_cost"
+GROUP BY 
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)), 
+    COALESCE(NULLIF(rt_user_product, ''), 'no-product')
+ORDER BY 
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)), 
+    COALESCE(NULLIF(rt_user_product, ''), 'no-product');
