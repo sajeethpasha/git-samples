@@ -1,21 +1,14 @@
 SELECT 
-    date AS "Date",
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)) AS "Date", 
+    COALESCE(NULLIF(rt_user_product, ''), 'no-product') AS "Product",
     SUM(CAST(line_item_unblended_cost AS double)) AS "Total Cost"
 FROM 
     "aws-costs"."normalized_cost"
+WHERE 
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)) IN ('2024-05-18', '2024-05-19', '2024-05-20')
 GROUP BY 
-    date
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)), 
+    COALESCE(NULLIF(rt_user_product, ''), 'no-product')
 ORDER BY 
-    date;
-
-UNION ALL
-
-SELECT 
-    DATE(from_iso8601_timestamp(line_Item_usage_start_date)) AS "Date",
-    SUM(CAST(line_item_unblended_cost AS double)) AS "Total Cost"
-FROM 
-    "aws-costs"."normalized_cost"
-GROUP BY 
-    DATE(from_iso8601_timestamp(line_Item_usage_start_date))
-ORDER BY 
-    DATE(from_iso8601_timestamp(line_Item_usage_start_date));
+    DATE(from_iso8601_timestamp(line_item_usage_start_date)), 
+    COALESCE(NULLIF(rt_user_product, ''), 'no-product');
