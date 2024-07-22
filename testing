@@ -1,3 +1,4 @@
+   
 
 def impact_service(df):
     # Initialize new columns
@@ -6,7 +7,7 @@ def impact_service(df):
     df['impact_service'] = ''
 
     # Extract unique resource_ids
-    unique_resource_ids = df[df['resource_id'].str.startswith('i-')]['resource_id'].unique()
+    unique_resource_ids = df['resource_id'].dropna().unique()
 
     # Populate the new columns
     for idx, row in df.iterrows():
@@ -28,12 +29,3 @@ def impact_service(df):
 
     # Print the final DataFrame
     print(df)
-
-    # Save the DataFrame to CSV with dynamic filename
-    current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    dynamic_filename = f'final_file_{current_datetime}.csv'
-    output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
-    df.to_csv(output_path, index=False)
-
-    print(f"File saved as: {output_path}")
-    return df
