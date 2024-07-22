@@ -1,39 +1,96 @@
 import pandas as pd
+from io import StringIO
 from datetime import datetime
 
-def impact_service(df):
+def extract_unique_resource_ids(df):
+    # Extract non-ARN entries and substrings that are part of ARN entries
+    resource_ids = df['line_item_resource_id'].dropna().unique()
+    non_arn_resource_ids = [rid for rid in resource_ids if isinstance(rid, str) and not rid.startswith('arn:')]
+    substrings_of_arn = set()
+
+    for rid in resource_ids:
+        if isinstance(rid, str) and rid.startswith('arn:'):
+            for non_arn in non_arn_resource_ids:
+                if non_arn in rid:
+                    substrings_of_arn.add(non_arn)
+
+    # Return the unique resource_ids that are not ARN and are substrings of ARN
+    return list(substrings_of_arn)
+
+def process_resource_ids(df):
+    # Get unique resource IDs that are substrings of ARNs
+    substrings_of_arn = extract_unique_resource_ids(df)
+    
     # Initialize new columns
-    df['arn'] = ''
-    df['resource_id'] = ''
-    df['impact_service'] = ''
-
-    # Extract unique resource_ids
-    unique_resource_ids = df['resource_id'].dropna().unique()
-
-    # Populate the new columns
-    for idx, row in df.iterrows():
-        resource_id = row['resource_id']
-        if pd.notna(resource_id):
+    df['associate_id'] = ''
+    df['is_associated_service'] = 'N'
+    
+    # Iterate over each row and determine the values for new columns
+    for index, row in df.iterrows():
+        resource_id = row['line_item_resource_id']
+        
+        if isinstance(resource_id, str):
             if resource_id.startswith('arn:'):
-                arn_resource_id = resource_id.split('/')[-1]
-                if arn_resource_id in unique_resource_ids:
-                    df.at[idx, 'arn'] = resource_id
-            # Removed the condition that checks for 'i-' in resource_id
-
-    # Set 'impact_service' values
-    df['impact_service'] = df.apply(
-        lambda row: 'impact' if row['arn'] else ('non-impact' if row['resource_id'] else ''),
-        axis=1
-    )
-
-    # Print the final DataFrame
-    print(df)
-
-    # Save the DataFrame to CSV with dynamic filename
-    current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    dynamic_filename = f'final_file_{current_datetime}.csv'
-    output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
-    df.to_csv(output_path, index=False)
-
-    print(f"File saved as: {output_path}")
+                # Extract the actual resource ID part from ARN
+                resource_id_parts = resource_id.split('/')
+                actual_resource_id = resource_id_parts[-1] if len(resource_id_parts) > 1 else resource_id
+                
+                # Check if this resource ID is among the substrings of ARN
+                if actual_resource_id in substrings_of_arn:
+                    df.at[index, 'associate_id'] = actual_resource_id
+                    df.at[index, 'is_associated_service'] = 'Y'
+                else:
+                    df.at[index, 'associate_id'] = ''
+                    df.at[index, 'is_associated_service'] = 'N'
+            else:
+                # If it is a non-ARN resource ID
+                if resource_id in substrings_of_arn:
+                    df.at[index, 'associate_id'] = resource_id
+                    df.at[index, 'is_associated_service'] = 'N'
+                else:
+                    df.at[index, 'associate_id'] = ''
+                    df.at[index, 'is_associated_service'] = 'N'
+        else:
+            # Handle non-string values (e.g., NaN) by leaving them blank
+            df.at[index, 'associate_id'] = ''
+            df.at[index, 'is_associated_service'] = 'N'
+    
     return df
+
+# Input CSV data
+data = """line_item_product_code,line_item_resource_id
+AmazonRDS,
+AmazonFSx,i-07ad85c14fe5fe97f
+AmazonFSx,arn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97f
+AmazonVPC,arn:aws:ec2:us-east-1:833923177614:vpc-endpoint/vpce-0b84d7c3d5b192251
+AmazonS3,sagemaker-us-east-2-833923177614
+AmazonS3,sumologic-log-source
+AmazonS3,sagemaker-us-east-2-833923177614
+AmazonS3,sumologic-report-bucket
+AmazonS3,ds-rtsmusagemetrics
+AmazonS3,acorn-sumo-logic-target-bucket
+AmazonS3,map-cost-data
+AmazonS3,cds-studies-orange
+AmazonS3,acorn-dse-lde-deliveries
+AmazonS3,scd-data-transfer
+AmazonS3,i-07ad85c14fe5fe97b
+AmazonS3,arn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97b
+AmazonS3,arn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97C
+AmazonS3,arn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97C"""
+
+# Read the CSV data from the string
+df = pd.read_csv(StringIO(data))
+
+# Process the DataFrame
+df = process_resource_ids(df)
+
+# Save the DataFrame to CSV with dynamic filename
+current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+dynamic_filename = f'final_file_{current_datetime}.csv'
+output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
+df.to_csv(output_path, index=False)
+
+print(f"File saved as: {output_path}")
+
+# Print the DataFrame to check the result
+print(df)
