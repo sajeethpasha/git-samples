@@ -1,53 +1,59 @@
--- Query to process and transform the data
-WITH filtered_data AS (
-    SELECT
-        line_item_product_code,
-        line_item_resource_id
-    FROM "ows-costs"."normalized_cost"
-    WHERE line_item_resource_id IS NOT NULL
-      AND (line_item_resource_id LIKE 'i-%' OR line_item_resource_id LIKE 'arn:%')
-),
-unique_resource_ids AS (
-    SELECT DISTINCT line_item_resource_id AS resource_id
-    FROM filtered_data
-    WHERE line_item_resource_id LIKE 'i-%'
-),
-arn_data AS (
-    SELECT
-        line_item_product_code,
-        line_item_resource_id AS arn,
-        '' AS resource_id
-    FROM filtered_data
-    WHERE line_item_resource_id LIKE 'arn:%'
-      AND SPLIT_PART(line_item_resource_id, '/', -1) IN (SELECT resource_id FROM unique_resource_ids)
-),
-resource_id_data AS (
-    SELECT
-        line_item_product_code,
-        '' AS arn,
-        line_item_resource_id AS resource_id
-    FROM filtered_data
-    WHERE line_item_resource_id LIKE 'i-%'
-      AND line_item_resource_id IN (SELECT resource_id FROM unique_resource_ids)
-),
-final_data AS (
-    SELECT * FROM arn_data
-    UNION ALL
-    SELECT * FROM resource_id_data
-)
-SELECT
-    line_item_product_code,
-    line_item_resource_id,
-    arn,
-    resource_id
-FROM final_data
-UNION ALL
-SELECT
-    line_item_product_code,
-    line_item_resource_id,
-    '' AS arn,
-    '' AS resource_id
-FROM "ows-costs"."normalized_cost"
-WHERE line_item_resource_id IS NULL
-   OR line_item_resource_id NOT LIKE 'i-%'
-   AND line_item_resource_id NOT LIKE 'arn:%';
+import pandas as pd
+from io import StringIO
+from datetime import datetime
+
+# Input data
+data = """line_item_product_code\tline_item_resource_id
+AmazonRDS\t
+AmazonFSx\ti-07ad85c14fe5fe97f
+AmazonFSx\tarn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97f
+AmazonVPC\tarn:aws:ec2:us-east-1:833923177614:vpc-endpoint/vpce-0b84d7c3d5b192251
+AmazonS3\tsagemaker-us-east-2-833923177614
+AmazonS3\tsumologic-log-source
+AmazonS3\tsagemaker-us-east-2-833923177614
+AmazonS3\tsumologic-report-bucket
+AmazonS3\tds-rtsmusagemetrics
+AmazonS3\tacorn-sumo-logic-target-bucket
+AmazonS3\tmap-cost-data
+AmazonS3\tcds-studies-orange
+AmazonS3\tacorn-dse-lde-deliveries
+AmazonS3\tscd-data-transfer
+AmazonS3\ti-07ad85c14fe5fe97b
+AmazonS3\tarn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97b
+AmazonS3\tarn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97C"""
+
+# Read the data into a pandas DataFrame
+df = pd.read_csv(StringIO(data), delimiter='\t')
+
+# Filter rows to include only those with resource IDs starting with 'i-' or 'arn:'
+df_filtered = df[df['line_item_resource_id'].notna() & df['line_item_resource_id'].str.startswith(('i-', 'arn:'))].copy()
+
+# Extract unique resource_ids
+unique_resource_ids = df_filtered[df_filtered['line_item_resource_id'].str.startswith('i-')]['line_item_resource_id'].unique()
+
+# Initialize new columns
+df['arn'] = ''
+df['resource_id'] = ''
+
+# Populate the new columns
+for idx, row in df.iterrows():
+    resource_id = row['line_item_resource_id']
+    if pd.notna(resource_id):
+        if resource_id.startswith('arn:'):
+            arn_resource_id = resource_id.split('/')[-1]
+            if arn_resource_id in unique_resource_ids:
+                df.at[idx, 'arn'] = resource_id
+        elif resource_id.startswith('i-'):
+            if resource_id in unique_resource_ids:
+                df.at[idx, 'resource_id'] = resource_id
+
+# Print the final DataFrame
+print(df)
+
+# Save the DataFrame to CSV with dynamic filename
+current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+dynamic_filename = f'final_file_{current_datetime}.csv'
+output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
+df.to_csv(output_path, index=False)
+
+print(f"File saved as: {output_path}")
