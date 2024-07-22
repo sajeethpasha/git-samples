@@ -34,6 +34,7 @@ unique_resource_ids = df_filtered[df_filtered['line_item_resource_id'].str.start
 # Initialize new columns
 df['arn'] = ''
 df['resource_id'] = ''
+df['impact_service'] = ''
 
 # Populate the new columns
 for idx, row in df.iterrows():
@@ -46,6 +47,12 @@ for idx, row in df.iterrows():
         elif resource_id.startswith('i-'):
             if resource_id in unique_resource_ids:
                 df.at[idx, 'resource_id'] = resource_id
+
+# Set 'impact_service' values
+df['impact_service'] = df.apply(
+    lambda row: 'impact' if row['arn'] else ('non-impact' if row['resource_id'] else ''),
+    axis=1
+)
 
 # Print the final DataFrame
 print(df)
