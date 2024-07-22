@@ -1,14 +1,62 @@
-SELECT 
-    DATE(from_iso8601_timestamp(line_item_usage_start_date)) AS "Date", 
-    COALESCE(NULLIF(rt_user_product, ''), 'no-product') AS "Product",
-    SUM(CAST(line_item_unblended_cost AS double)) AS "Total Cost"
-FROM 
-    "aws-costs"."normalized_cost"
-WHERE 
-    DATE(from_iso8601_timestamp(line_item_usage_start_date)) IN ('2024-05-18', '2024-05-19', '2024-05-20')
-GROUP BY 
-    DATE(from_iso8601_timestamp(line_item_usage_start_date)), 
-    COALESCE(NULLIF(rt_user_product, ''), 'no-product')
-ORDER BY 
-    DATE(from_iso8601_timestamp(line_item_usage_start_date)), 
-    COALESCE(NULLIF(rt_user_product, ''), 'no-product');
+-- Create a table if it doesn't already exist
+CREATE EXTERNAL TABLE IF NOT EXISTS aws_resource_table (
+    line_item_product_code STRING,
+    line_item_resource_id STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LOCATION 's3://your-bucket/path-to-data/';
+
+-- Query to process and transform the data
+WITH filtered_data AS (
+    SELECT
+        line_item_product_code,
+        line_item_resource_id
+    FROM aws_resource_table
+    WHERE line_item_resource_id IS NOT NULL
+      AND (line_item_resource_id LIKE 'i-%' OR line_item_resource_id LIKE 'arn:%')
+),
+unique_resource_ids AS (
+    SELECT DISTINCT line_item_resource_id AS resource_id
+    FROM filtered_data
+    WHERE line_item_resource_id LIKE 'i-%'
+),
+arn_data AS (
+    SELECT
+        line_item_product_code,
+        line_item_resource_id AS arn,
+        '' AS resource_id
+    FROM filtered_data
+    WHERE line_item_resource_id LIKE 'arn:%'
+      AND SUBSTRING_INDEX(line_item_resource_id, '/', -1) IN (SELECT resource_id FROM unique_resource_ids)
+),
+resource_id_data AS (
+    SELECT
+        line_item_product_code,
+        '' AS arn,
+        line_item_resource_id AS resource_id
+    FROM filtered_data
+    WHERE line_item_resource_id LIKE 'i-%'
+      AND line_item_resource_id IN (SELECT resource_id FROM unique_resource_ids)
+),
+final_data AS (
+    SELECT * FROM arn_data
+    UNION ALL
+    SELECT * FROM resource_id_data
+)
+SELECT
+    line_item_product_code,
+    line_item_resource_id,
+    arn,
+    resource_id
+FROM final_data
+UNION ALL
+SELECT
+    line_item_product_code,
+    line_item_resource_id,
+    '' AS arn,
+    '' AS resource_id
+FROM aws_resource_table
+WHERE line_item_resource_id IS NULL
+   OR line_item_resource_id NOT LIKE 'i-%'
+   AND line_item_resource_id NOT LIKE 'arn:%';
