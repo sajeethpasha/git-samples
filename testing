@@ -1,66 +1,39 @@
-import pandas as pd
-from io import StringIO
-from datetime import datetime
 
-# Input data
-data = """line_item_product_code\tline_item_resource_id
-AmazonRDS\t
-AmazonFSx\ti-07ad85c14fe5fe97f
-AmazonFSx\tarn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97f
-AmazonVPC\tarn:aws:ec2:us-east-1:833923177614:vpc-endpoint/vpce-0b84d7c3d5b192251
-AmazonS3\tsagemaker-us-east-2-833923177614
-AmazonS3\tsumologic-log-source
-AmazonS3\tsagemaker-us-east-2-833923177614
-AmazonS3\tsumologic-report-bucket
-AmazonS3\tds-rtsmusagemetrics
-AmazonS3\tacorn-sumo-logic-target-bucket
-AmazonS3\tmap-cost-data
-AmazonS3\tcds-studies-orange
-AmazonS3\tacorn-dse-lde-deliveries
-AmazonS3\tscd-data-transfer
-AmazonS3\ti-07ad85c14fe5fe97b
-AmazonS3\tarn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97b
-AmazonS3\tarn:aws:fsx:us-east-1:833923177614:file-system/i-07ad85c14fe5fe97C"""
+def impact_service(df):
+    # Initialize new columns
+    df['arn'] = ''
+    df['resource_id'] = ''
+    df['impact_service'] = ''
 
-# Read the data into a pandas DataFrame
-df = pd.read_csv(StringIO(data), delimiter='\t')
+    # Extract unique resource_ids
+    unique_resource_ids = df[df['resource_id'].str.startswith('i-')]['resource_id'].unique()
 
-# Filter rows to include only those with resource IDs starting with 'i-' or 'arn:'
-df_filtered = df[df['line_item_resource_id'].notna() & df['line_item_resource_id'].str.startswith(('i-', 'arn:'))].copy()
+    # Populate the new columns
+    for idx, row in df.iterrows():
+        resource_id = row['resource_id']
+        if pd.notna(resource_id):
+            if resource_id.startswith('arn:'):
+                arn_resource_id = resource_id.split('/')[-1]
+                if arn_resource_id in unique_resource_ids:
+                    df.at[idx, 'arn'] = resource_id
+            elif resource_id.startswith('i-'):
+                if resource_id in unique_resource_ids:
+                    df.at[idx, 'resource_id'] = resource_id
 
-# Extract unique resource_ids
-unique_resource_ids = df_filtered[df_filtered['line_item_resource_id'].str.startswith('i-')]['line_item_resource_id'].unique()
+    # Set 'impact_service' values
+    df['impact_service'] = df.apply(
+        lambda row: 'impact' if row['arn'] else ('non-impact' if row['resource_id'] else ''),
+        axis=1
+    )
 
-# Initialize new columns
-df['arn'] = ''
-df['resource_id'] = ''
-df['impact_service'] = ''
+    # Print the final DataFrame
+    print(df)
 
-# Populate the new columns
-for idx, row in df.iterrows():
-    resource_id = row['line_item_resource_id']
-    if pd.notna(resource_id):
-        if resource_id.startswith('arn:'):
-            arn_resource_id = resource_id.split('/')[-1]
-            if arn_resource_id in unique_resource_ids:
-                df.at[idx, 'arn'] = resource_id
-        elif resource_id.startswith('i-'):
-            if resource_id in unique_resource_ids:
-                df.at[idx, 'resource_id'] = resource_id
+    # Save the DataFrame to CSV with dynamic filename
+    current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    dynamic_filename = f'final_file_{current_datetime}.csv'
+    output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
+    df.to_csv(output_path, index=False)
 
-# Set 'impact_service' values
-df['impact_service'] = df.apply(
-    lambda row: 'impact' if row['arn'] else ('non-impact' if row['resource_id'] else ''),
-    axis=1
-)
-
-# Print the final DataFrame
-print(df)
-
-# Save the DataFrame to CSV with dynamic filename
-current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-dynamic_filename = f'final_file_{current_datetime}.csv'
-output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
-df.to_csv(output_path, index=False)
-
-print(f"File saved as: {output_path}")
+    print(f"File saved as: {output_path}")
+    return df
