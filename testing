@@ -1,18 +1,9 @@
--- Create a table if it doesn't already exist
-CREATE EXTERNAL TABLE IF NOT EXISTS aws_resource_table (
-    line_item_product_code STRING,
-    line_item_resource_id STRING
-)
-ROW FORMAT DELIMITED
-FIELDS TERMINATED BY '\t'
-LOCATION 's3://your-bucket/path-to-data/';
-
 -- Query to process and transform the data
 WITH filtered_data AS (
     SELECT
         line_item_product_code,
         line_item_resource_id
-    FROM aws_resource_table
+    FROM "ows-costs"."normalized_cost"
     WHERE line_item_resource_id IS NOT NULL
       AND (line_item_resource_id LIKE 'i-%' OR line_item_resource_id LIKE 'arn:%')
 ),
@@ -28,7 +19,7 @@ arn_data AS (
         '' AS resource_id
     FROM filtered_data
     WHERE line_item_resource_id LIKE 'arn:%'
-      AND SUBSTRING_INDEX(line_item_resource_id, '/', -1) IN (SELECT resource_id FROM unique_resource_ids)
+      AND SPLIT_PART(line_item_resource_id, '/', -1) IN (SELECT resource_id FROM unique_resource_ids)
 ),
 resource_id_data AS (
     SELECT
@@ -56,7 +47,7 @@ SELECT
     line_item_resource_id,
     '' AS arn,
     '' AS resource_id
-FROM aws_resource_table
+FROM "ows-costs"."normalized_cost"
 WHERE line_item_resource_id IS NULL
    OR line_item_resource_id NOT LIKE 'i-%'
    AND line_item_resource_id NOT LIKE 'arn:%';
