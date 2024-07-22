@@ -1,4 +1,5 @@
-   
+import pandas as pd
+from datetime import datetime
 
 def impact_service(df):
     # Initialize new columns
@@ -17,9 +18,7 @@ def impact_service(df):
                 arn_resource_id = resource_id.split('/')[-1]
                 if arn_resource_id in unique_resource_ids:
                     df.at[idx, 'arn'] = resource_id
-            elif resource_id.startswith('i-'):
-                if resource_id in unique_resource_ids:
-                    df.at[idx, 'resource_id'] = resource_id
+            # Removed the condition that checks for 'i-' in resource_id
 
     # Set 'impact_service' values
     df['impact_service'] = df.apply(
@@ -29,3 +28,12 @@ def impact_service(df):
 
     # Print the final DataFrame
     print(df)
+
+    # Save the DataFrame to CSV with dynamic filename
+    current_datetime = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    dynamic_filename = f'final_file_{current_datetime}.csv'
+    output_path = fr'D:\supports\akhil\orange_data\testing\out\arn\{dynamic_filename}'
+    df.to_csv(output_path, index=False)
+
+    print(f"File saved as: {output_path}")
+    return df
