@@ -1,0 +1,49 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ReconcileService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Transactional
+    public void saveReconcileData(ReconcileResponseDTO reconcileResponseDTO) throws Exception {
+        // Convert the ReconcileResponseDTO to JSON string
+        String jsonString = objectMapper.writeValueAsString(reconcileResponseDTO);
+
+        // Call the stored procedure
+        jdbcTemplate.update(connection -> {
+            var cs = connection.prepareCall("{CALL insert_reconcile_data(?)}");
+            cs.setString(1, jsonString);
+            return cs;
+        });
+    }
+}
+
+----------
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ReconcileRunner {
+
+    @Autowired
+    private ReconcileService reconcileService;
+
+    public void executeProcedure(ReconcileResponseDTO reconcileResponseDTO) {
+        try {
+            reconcileService.saveReconcileData(reconcileResponseDTO);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+

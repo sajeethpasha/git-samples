@@ -1,0 +1,79 @@
+CREATE OR REPLACE PROCEDURE insert_reconcile_data(p_json IN CLOB) AS
+    v_summary_json  CLOB;
+    v_benchmark_json CLOB;
+    v_field_details_json CLOB;
+BEGIN
+    -- Extract the JSON arrays for each entity
+    SELECT json_value(p_json, '$.summaries')
+    INTO v_summary_json
+    FROM dual;
+
+    SELECT json_value(p_json, '$.benchmarks')
+    INTO v_benchmark_json
+    FROM dual;
+
+    SELECT json_value(p_json, '$.fieldDetails')
+    INTO v_field_details_json
+    FROM dual;
+
+    -- Insert into ReportExecSummaryEntity table
+    FOR rec IN (
+        SELECT *
+        FROM json_table(
+            v_summary_json,
+            '$[*]' COLUMNS (
+                id             NUMBER  PATH '$.id',
+                status         VARCHAR2(255) PATH '$.status',
+                match_percent  VARCHAR2(255) PATH '$.matchPercent',
+                mismatch_count NUMBER  PATH '$.mismatchCount'
+            )
+        )
+    ) LOOP
+        INSERT INTO report_exec_summary (id, status, match_percent, mismatch_count)
+        VALUES (rec.id, rec.status, rec.match_percent, rec.mismatch_count);
+    END LOOP;
+
+    -- Insert into ReportExecBenchMarkEntity table
+    FOR rec IN (
+        SELECT *
+        FROM json_table(
+            v_benchmark_json,
+            '$[*]' COLUMNS (
+                id            NUMBER  PATH '$.id',
+                over_benchmark VARCHAR2(255) PATH '$.overBenchmark'
+            )
+        )
+    ) LOOP
+        INSERT INTO report_exec_benchmark (id, over_benchmark)
+        VALUES (rec.id, rec.over_benchmark);
+    END LOOP;
+
+    -- Insert into ReportExecFieldDetailsEntity table
+    FOR rec IN (
+        SELECT *
+        FROM json_table(
+            v_field_details_json,
+            '$[*]' COLUMNS (
+                id                  NUMBER  PATH '$.id',
+                report_execute_id   NUMBER  PATH '$.reportExecuteId',
+                field_name          VARCHAR2(255) PATH '$.fieldName',
+                recon_capture_state VARCHAR2(255) PATH '$.reconCaptureState',
+                source_recon_id     NUMBER  PATH '$.sourceReconId',
+                source_value        VARCHAR2(255) PATH '$.sourceValue',
+                target_recon_id     NUMBER  PATH '$.targetReconId',
+                target_value        VARCHAR2(255) PATH '$.targetValue'
+            )
+        )
+    ) LOOP
+        INSERT INTO report_exec_field_details (
+            id, report_execute_id, field_name, recon_capture_state,
+            source_recon_id, source_value, target_recon_id, target_value
+        ) VALUES (
+            rec.id, rec.report_execute_id, rec.field_name, rec.recon_capture_state,
+            rec.source_recon_id, rec.source_value, rec.target_recon_id, rec.target_value
+        );
+    END LOOP;
+
+    COMMIT;
+END;
+/
