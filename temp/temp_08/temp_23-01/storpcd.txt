@@ -1,0 +1,95 @@
+CREATE OR REPLACE PROCEDURE insert_reconcile_data(p_reconcile_data CLOB) IS
+    -- Variables to hold JSON data
+    l_report_summary_json   JSON_ARRAY_T;
+    l_report_benchmark_json JSON_ARRAY_T;
+    l_report_field_details_json JSON_ARRAY_T;
+
+    -- Variables to hold concatenated insert statements
+    l_insert_report_summary VARCHAR2(32767);
+    l_insert_report_benchmark VARCHAR2(32767);
+    l_insert_report_field_details VARCHAR2(32767);
+
+    -- Temporary variables for individual object data
+    l_report_summary_obj  JSON_OBJECT_T;
+    l_report_benchmark_obj JSON_OBJECT_T;
+    l_report_field_detail_obj JSON_OBJECT_T;
+
+BEGIN
+    BEGIN
+        -- Initialize the JSON arrays from input CLOB
+        l_report_summary_json := JSON_OBJECT_T(p_reconcile_data).get_Array('reportSummaryEntities');
+        l_report_benchmark_json := JSON_OBJECT_T(p_reconcile_data).get_Array('reportBenchmarkEntities');
+        l_report_field_details_json := JSON_OBJECT_T(p_reconcile_data).get_Array('reportFieldDetailsEntities');
+    EXCEPTION
+        WHEN JSON_VALUE_ERROR THEN
+            RAISE_APPLICATION_ERROR(-20004, 'JSON parsing error occurred: ' || SQLERRM);
+    END;
+
+    -- Initialize the SQL insert statements
+    l_insert_report_summary := 'INSERT ALL ';
+    l_insert_report_benchmark := 'INSERT ALL ';
+    l_insert_report_field_details := 'INSERT ALL ';
+
+    -- Build the SQL insert statements for ReportExecSummaryEntity
+    FOR i IN 0 .. l_report_summary_json.get_Size - 1 LOOP
+        l_report_summary_obj := l_report_summary_json.get_Object(i);
+        l_insert_report_summary := l_insert_report_summary || 
+        'INTO ReportExecSummaryEntity (report_execute_id, status, match_percent, mismatch_count) VALUES (' ||
+        l_report_summary_obj.get_Number('reportExecuteId') || ', ' ||
+        '''' || l_report_summary_obj.get_String('status') || ''', ' ||
+        '''' || l_report_summary_obj.get_String('matchPercent') || ''', ' ||
+        l_report_summary_obj.get_Number('mismatchCount') || ') ';
+    END LOOP;
+    l_insert_report_summary := l_insert_report_summary || ' SELECT * FROM dual';
+
+    -- Build the SQL insert statements for ReportExecBenchMarkEntity
+    FOR i IN 0 .. l_report_benchmark_json.get_Size - 1 LOOP
+        l_report_benchmark_obj := l_report_benchmark_json.get_Object(i);
+        l_insert_report_benchmark := l_insert_report_benchmark || 
+        'INTO ReportExecBenchMarkEntity (report_execute_id, over_benchmark) VALUES (' ||
+        l_report_benchmark_obj.get_Number('reportExecuteId') || ', ' ||
+        '''' || l_report_benchmark_obj.get_String('overBenchmark') || ''') ';
+    END LOOP;
+    l_insert_report_benchmark := l_insert_report_benchmark || ' SELECT * FROM dual';
+
+    -- Build the SQL insert statements for ReportExecFieldDetailsEntity
+    FOR i IN 0 .. l_report_field_details_json.get_Size - 1 LOOP
+        l_report_field_detail_obj := l_report_field_details_json.get_Object(i);
+        l_insert_report_field_details := l_insert_report_field_details || 
+        'INTO ReportExecFieldDetailsEntity (report_execute_id, field_name, recon_capture_state, source_recon_id, source_value, target_recon_id, target_value) VALUES (' ||
+        l_report_field_detail_obj.get_Number('reportExecuteId') || ', ' ||
+        '''' || l_report_field_detail_obj.get_String('fieldName') || ''', ' ||
+        '''' || l_report_field_detail_obj.get_String('reconCaptureState') || ''', ' ||
+        l_report_field_detail_obj.get_Number('sourceReconId') || ', ' ||
+        '''' || l_report_field_detail_obj.get_String('sourceValue') || ''', ' ||
+        l_report_field_detail_obj.get_Number('targetReconId') || ', ' ||
+        '''' || l_report_field_detail_obj.get_String('targetValue') || ''') ';
+    END LOOP;
+    l_insert_report_field_details := l_insert_report_field_details || ' SELECT * FROM dual';
+
+    -- Execute the SQL insert statements within a single transaction
+    BEGIN
+        EXECUTE IMMEDIATE l_insert_report_summary;
+        EXECUTE IMMEDIATE l_insert_report_benchmark;
+        EXECUTE IMMEDIATE l_insert_report_field_details;
+
+        -- Commit the transaction
+        COMMIT;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            -- Handle specific exception for NO_DATA_FOUND
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20002, 'No data found error while inserting reconcile data: ' || SQLERRM);
+
+        WHEN VALUE_ERROR THEN
+            -- Handle specific exception for VALUE_ERROR
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20003, 'Value error while inserting reconcile data: ' || SQLERRM);
+
+        WHEN OTHERS THEN
+            -- If any other error occurs, rollback the transaction
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20001, 'General error occurred while inserting reconcile data: ' || SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    END;
+END insert_reconcile_data;
+/
