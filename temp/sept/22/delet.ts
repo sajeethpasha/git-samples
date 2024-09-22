@@ -8,11 +8,11 @@ describe('DeleteRendererComponent', () => {
   let component: DeleteRendererComponent;
   let fixture: ComponentFixture<DeleteRendererComponent>;
   let debugElement: DebugElement;
-  
-  // Mock data for the params
+
+  // Updated mock data for the params, including required properties of ICellRendererParams
   const paramsMock: ICellRendererParams = {
     data: {
-      reviewStatus: '',
+      reviewStatus: 'Feedback response submitted',
       sid: '123',
       isRestrictedUser: true,
       isDocManager: false,
@@ -22,7 +22,23 @@ describe('DeleteRendererComponent', () => {
       componentParent: {
         deleteGridRow: jasmine.createSpy('deleteGridRow') // Mock delete method
       }
-    }
+    },
+    api: null, // Mock other required properties with null or dummy values
+    columnApi: null,
+    node: {} as any,
+    rowIndex: 0,
+    eGridCell: null,
+    value: null,
+    valueFormatted: null,
+    getValue: () => null,
+    refreshCell: () => {},
+    registerRowDragger: () => {},
+    colDef: {} as any,
+    column: {} as any,
+    pinned: null,
+    fullWidth: false,
+    eParentOfValue: null,
+    formatValue: () => null
   };
 
   beforeEach(() => {
