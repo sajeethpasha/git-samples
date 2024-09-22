@@ -1,12 +1,21 @@
 import subprocess
 import random
 import string
+from datetime import datetime
 
 # Generate a random commit message
 def generate_random_commit_message(length=10):
     # Generate a random string of letters and digits
     letters_and_digits = string.ascii_letters + string.digits
-    return ''.join(random.choice(letters_and_digits) for i in range(length))
+    random_part = ''.join(random.choice(letters_and_digits) for i in range(length))
+    
+    # Get the current timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Combine random string with timestamp
+    commit_message = f"{random_part} - {timestamp}"
+    
+    return commit_message
 
 # Function to run git commands
 def run_git_command(command):
@@ -22,7 +31,7 @@ def git_add_commit_push():
     # Git add
     run_git_command(['git', 'add', '.'])
 
-    # Commit with a random message
+    # Commit with a random message combined with a timestamp
     commit_message = generate_random_commit_message()
     run_git_command(['git', 'commit', '-m', commit_message])
 
