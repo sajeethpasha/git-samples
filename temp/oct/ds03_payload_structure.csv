@@ -1,0 +1,27 @@
+Field Description,Value,Length (bytes),Start Position
+Segment Type,DS03,4,1
+Segment Length,139,3,5
+Bureau Match,M,1,8
+Directory Services Match,Y,1,9
+Credit Bureau Hit,N,1,10
+Last Name Match Flag,N,1,11
+First Name Match Flag,N,1,12
+Middle Name Match Flag,N,1,13
+Street/Civic Number Match,N,1,14
+Street Name Match Flag,M,1,15
+Apartment Number Match Flag,N,1,16
+City Name Match Flag,N,1,17
+Province Match Flag,N,1,18
+Postal Code Match Flag,N,1,19
+Telephone Number Match Flag,M,1,20
+Date of Birth Match Flag,N,1,21
+SIN Match Flag,H,1,22
+Fraud Flag,H,1,23
+Last Name,ABERER,20,24
+First Name,QIAO,16,44
+Middle Name,AELWEN,10,60
+Street/Civic Number,78,8,70
+Street Name,FORRESTERS POINT,24,78
+City Name,ST MARYS,16,102
+Province,NL,2,118
+Postal Code,A0B3H0,6,120
