@@ -1,0 +1,394 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.*;
+
+// Domain classes (Assuming these are defined elsewhere in your project)
+class IdxCrc {
+    private String name;
+    private String value;
+
+    public IdxCrc(String name, String value) {
+        this.name = name;
+        this.value = value;
+    }
+
+    // Getters
+    public String getName() {
+        return name;
+    }
+
+    public String getValue() {
+        return value;
+    }
+}
+
+class ResultCrcs {
+    private String name;
+    private String value;
+
+    public ResultCrcs(String name, String value) {
+        this.name = name;
+        this.value = value;
+    }
+
+    // Getters
+    public String getName() {
+        return name;
+    }
+
+    public String getValue() {
+        return value;
+    }
+}
+
+class TranScores {
+    private String transactionId;
+    private int idxScore;
+    private List<ResultCrcs> crcList;
+
+    public TranScores(String transactionId, int idxScore) {
+        this.transactionId = transactionId;
+        this.idxScore = idxScore;
+        this.crcList = new ArrayList<>();
+    }
+
+    public void add(ResultCrcs resultCrcs) {
+        this.crcList.add(resultCrcs);
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public List<ResultCrcs> getCrcList() {
+        return crcList;
+    }
+}
+
+// Repository Interface (Assuming this is defined elsewhere in your project)
+interface TranScoresRepository {
+    void saveAndFlush(TranScores tranScores);
+}
+
+// Service Implementation (Assuming this is defined elsewhere in your project)
+class PostResponseServiceImpl {
+
+    private TranScoresRepository tranScoresRepository;
+    private org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PostResponseServiceImpl.class);
+
+    public PostResponseServiceImpl(TranScoresRepository tranScoresRepository) {
+        this.tranScoresRepository = tranScoresRepository;
+    }
+
+    public void postResponse(List<IdxCrc> crcList, int idxScore, String tranId) {
+        if (StringUtils.isBlank(tranId)) {
+            log.error("Missing transaction ID, cannot save CRCs..");
+            return;
+        }
+
+        log.debug("Start saving score and CRCs for tranId=" + tranId);
+        TranScores tranScores = new TranScores(tranId, idxScore);
+        List<IdxCrc> safeCrcList = crcList != null ? crcList : new ArrayList<>();
+        safeCrcList.forEach(c -> {
+            String value = c.getValue();
+
+            if (value != null) {
+                value = value.replaceAll("^\\s+", "");  // Trim prefix only (leading spaces)
+
+                if (value.startsWith("DS03")) {
+                    // Trim the value after 139 characters if it starts with 'DS03'
+                    value = value.length() > 139 ? value.substring(0, 139) : value;
+                }
+            }
+
+            ResultCrcs resultCrcs = new ResultCrcs(c.getName(), value);
+            tranScores.add(resultCrcs);
+        });
+
+        try {
+            log.debug("Saving IDX CRC and scores for ID=" + tranScores.getTransactionId());
+            tranScoresRepository.saveAndFlush(tranScores);
+        } catch (Exception e) {
+            log.error("Exception saving CRC values", e);
+        }
+    }
+}
+
+@ExtendWith(MockitoExtension.class)
+class PostResponseServiceImplTest {
+
+    @Mock
+    private TranScoresRepository tranScoresRepository;
+
+    @InjectMocks
+    private PostResponseServiceImpl responseService;
+
+    private String tranId;
+    private List<IdxCrc> crcList;
+
+    @BeforeEach
+    public void setUp() {
+        crcList = List.of(
+                new IdxCrc("IDX_BE12", "1"),
+                new IdxCrc("IDX_BE14", "0"),
+                new IdxCrc("IDX_BE15", "99999"),
+                new IdxCrc("IDX_BE23", "4"),
+                new IdxCrc("IDX_BE24", "5"),
+                new IdxCrc("IDX_ID22", "8")
+        );
+
+        tranId = "test-tranid";
+    }
+
+    @Test
+    void testPostResponse_ValueIsNull() {
+        // Arrange
+        List<IdxCrc> crcListWithNull = Collections.singletonList(new IdxCrc("CRC1", null));
+        String tranId = "TXN123";
+        int idxScore = 100;
+
+        // Act
+        responseService.postResponse(crcListWithNull, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).hasSize(1);
+        ResultCrcs result = savedTranScores.getCrcList().get(0);
+        assertThat(result.getName()).isEqualTo("CRC1");
+        assertThat(result.getValue()).isNull();
+    }
+
+    @Test
+    void testPostResponse_ValueWithLeadingSpaces() {
+        // Arrange
+        List<IdxCrc> crcListWithLeadingSpaces = Collections.singletonList(
+                new IdxCrc("CRC2", "   Leading spaces")
+        );
+        String tranId = "TXN124";
+        int idxScore = 200;
+
+        // Act
+        responseService.postResponse(crcListWithLeadingSpaces, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).hasSize(1);
+        ResultCrcs result = savedTranScores.getCrcList().get(0);
+        assertThat(result.getName()).isEqualTo("CRC2");
+        assertThat(result.getValue()).isEqualTo("Leading spaces");
+    }
+
+    @Test
+    void testPostResponse_ValueStartsWithDS03_Exceeds139Chars() {
+        // Arrange
+        String longValue = "   DS03" + "A".repeat(150); // Total length > 139 after trimming
+        List<IdxCrc> crcListWithLongDS03 = Collections.singletonList(
+                new IdxCrc("CRC3", longValue)
+        );
+        String tranId = "TXN125";
+        int idxScore = 300;
+
+        // Act
+        responseService.postResponse(crcListWithLongDS03, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).hasSize(1);
+        ResultCrcs result = savedTranScores.getCrcList().get(0);
+        assertThat(result.getName()).isEqualTo("CRC3");
+        assertThat(result.getValue()).startsWith("DS03");
+        assertThat(result.getValue()).hasSize(139);
+    }
+
+    @Test
+    void testPostResponse_ValueStartsWithDS03_Under139Chars() {
+        // Arrange
+        String value = "   DS03ShortValue";
+        List<IdxCrc> crcListWithShortDS03 = Collections.singletonList(
+                new IdxCrc("CRC4", value)
+        );
+        String tranId = "TXN126";
+        int idxScore = 400;
+
+        // Act
+        responseService.postResponse(crcListWithShortDS03, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).hasSize(1);
+        ResultCrcs result = savedTranScores.getCrcList().get(0);
+        assertThat(result.getName()).isEqualTo("CRC4");
+        assertThat(result.getValue()).isEqualTo("DS03ShortValue");
+    }
+
+    @Test
+    void testPostResponse_ValueDoesNotStartWithDS03() {
+        // Arrange
+        String value = "   SomeOtherValue";
+        List<IdxCrc> crcListWithNonDS03 = Collections.singletonList(
+                new IdxCrc("CRC5", value)
+        );
+        String tranId = "TXN127";
+        int idxScore = 500;
+
+        // Act
+        responseService.postResponse(crcListWithNonDS03, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).hasSize(1);
+        ResultCrcs result = savedTranScores.getCrcList().get(0);
+        assertThat(result.getName()).isEqualTo("CRC5");
+        assertThat(result.getValue()).isEqualTo("SomeOtherValue");
+    }
+
+    @Test
+    void testPostResponse_MultipleCrcsMixedValues() {
+        // Arrange
+        List<IdxCrc> mixedCrcList = Arrays.asList(
+                new IdxCrc("CRC6", null),
+                new IdxCrc("CRC7", "   DS03" + "B".repeat(140)),
+                new IdxCrc("CRC8", "   RegularValue")
+        );
+        String tranId = "TXN128";
+        int idxScore = 600;
+
+        // Act
+        responseService.postResponse(mixedCrcList, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).hasSize(3);
+
+        // CRC6
+        ResultCrcs result1 = savedTranScores.getCrcList().get(0);
+        assertThat(result1.getName()).isEqualTo("CRC6");
+        assertThat(result1.getValue()).isNull();
+
+        // CRC7
+        ResultCrcs result2 = savedTranScores.getCrcList().get(1);
+        assertThat(result2.getName()).isEqualTo("CRC7");
+        assertThat(result2.getValue()).startsWith("DS03");
+        assertThat(result2.getValue()).hasSize(139);
+
+        // CRC8
+        ResultCrcs result3 = savedTranScores.getCrcList().get(2);
+        assertThat(result3.getName()).isEqualTo("CRC8");
+        assertThat(result3.getValue()).isEqualTo("RegularValue");
+    }
+
+    @Test
+    void testPostResponse_EmptyCrcList() {
+        // Arrange
+        List<IdxCrc> emptyCrcList = Collections.emptyList();
+        String tranId = "TXN129";
+        int idxScore = 700;
+
+        // Act
+        responseService.postResponse(emptyCrcList, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).isEmpty();
+    }
+
+    @Test
+    void testPostResponse_NullCrcList() {
+        // Arrange
+        List<IdxCrc> nullCrcList = null;
+        String tranId = "TXN130";
+        int idxScore = 800;
+
+        // Act
+        responseService.postResponse(nullCrcList, idxScore, tranId);
+
+        // Assert
+        ArgumentCaptor<TranScores> captor = ArgumentCaptor.forClass(TranScores.class);
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(captor.capture());
+
+        TranScores savedTranScores = captor.getValue();
+        assertThat(savedTranScores.getCrcList()).isEmpty();
+    }
+
+    @Test
+    void testPostResponse_BlankTranId() {
+        // Arrange
+        String blankTranId = "   ";
+        int idxScore = 900;
+        List<IdxCrc> crcListWithValue = Collections.singletonList(new IdxCrc("CRC9", "Value"));
+
+        // Act
+        responseService.postResponse(crcListWithValue, idxScore, blankTranId);
+
+        // Assert
+        verify(tranScoresRepository, never()).saveAndFlush(any());
+        // Optionally, verify that an error was logged. This requires a logging framework that supports verification.
+    }
+
+    @Test
+    void testPostResponse_SaveThrowsException() {
+        // Arrange
+        List<IdxCrc> crcListWithValue = Collections.singletonList(new IdxCrc("CRC10", "Value"));
+        String tranId = "TXN131";
+        int idxScore = 1000;
+
+        doThrow(new RuntimeException("Database error")).when(tranScoresRepository).saveAndFlush(any());
+
+        // Act
+        responseService.postResponse(crcListWithValue, idxScore, tranId);
+
+        // Assert
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(any());
+        // Optionally, verify that an error was logged. This requires a logging framework that supports verification.
+    }
+
+    // Existing test methods (renamed to avoid duplication)
+    @Test
+    void testPostResponse_WithValidCrcList() {
+        // Arrange
+        String tranId = "test-tranid";
+        int idxScore = 32;
+
+        // Act
+        responseService.postResponse(crcList, idxScore, tranId);
+
+        // Assert
+        verify(tranScoresRepository, atMost(1)).saveAndFlush(any());
+    }
+}
