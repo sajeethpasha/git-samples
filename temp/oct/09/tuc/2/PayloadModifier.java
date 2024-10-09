@@ -1,12 +1,7 @@
-package org.example.test;
-
 public class PayloadModifier {
     public static void main(String[] args) {
         // Original payload
         String payload = "DS04252Y20201029CAPITAL CITY SAVINGS 023975015872036502 20240423MAC DONALD AFRICA YYYYYYYYYYYY";
-
-        // Create a StringBuilder to store the modified payload
-        StringBuilder modifiedPayload = new StringBuilder(payload);
 
         // List of fields to retain, the rest will be emptied
         int[][] fieldsToRetain = {
@@ -15,6 +10,17 @@ public class PayloadModifier {
             {44, 16},  // First Name (QIAO)
             {78, 16},  // Street Name (FORRESTERS POINT)
         };
+
+        // Modify the payload
+        String modifiedPayload = modifyPayload(payload, fieldsToRetain);
+
+        // Print the modified payload
+        System.out.println("Modified Payload: " + modifiedPayload);
+    }
+
+    public static String modifyPayload(String payload, int[][] fieldsToRetain) {
+        // Create a StringBuilder to store the modified payload
+        StringBuilder modifiedPayload = new StringBuilder(payload);
 
         // Replace the entire payload with spaces initially
         for (int i = 0; i < payload.length(); i++) {
@@ -31,7 +37,6 @@ public class PayloadModifier {
             }
         }
 
-        // Print the modified payload
-        System.out.println("Modified Payload: " + modifiedPayload);
+        return modifiedPayload.toString();
     }
 }
