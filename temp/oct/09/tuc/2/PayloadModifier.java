@@ -14,13 +14,13 @@ public class PayloadModifier {
 
         // List of fields to retain, the rest will be emptied
         int[][] fieldsToRetain = {
-            {0, 4},    // Segment Type (DS04)
-            {8, 1},    // Directory Services Match (Y)
-            {44, 16},  // First Name (QIAO)
-            {78, 16},  // Street Name (FORRESTERS POINT)
+            {1, 4},    // Segment Type (DS04)
+            {9, 1},    // Directory Services Match (Y)
+            {45, 16},  // First Name (QIAO)
+            {79, 16},  // Street Name (FORRESTERS POINT)
         };
 
-        // Modify the payload
+        // Modify the payloadc
         String modifiedPayload = modifyPayload(payload, fieldsToRetain);
 
         // Print the modified payload
@@ -40,9 +40,9 @@ public class PayloadModifier {
 
         // Retain only the specified fields
         for (int[] field : fieldsToRetain) {
-            int start = field[0];
+            int start = field[0] - 1;
             int length = field[1];
-            if (start + length <= payload.length()) {
+            if (start >= 0 && start + length <= payload.length()) {
                 String valueToRetain = payload.substring(start, start + length);
                 modifiedPayload.replace(start, start + length, valueToRetain);
             }
