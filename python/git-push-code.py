@@ -19,6 +19,7 @@ def generate_random_commit_message(length=10):
 
 # Function to run git commands
 def run_git_command(command):
+    
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"Error running command: {' '.join(command)}")
