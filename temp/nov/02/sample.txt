@@ -1,0 +1,1 @@
+I’ve reviewed the ca.tuc.commons-daodto library (altdata) as well as the FFR outputs and parsing code in the ca.tuc.commons library. However, I’m a bit unsure about what we should do next with the FFR codes. Do you have any suggestions?
