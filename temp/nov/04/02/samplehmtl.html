@@ -1,0 +1,12 @@
+<ng-template appCellDef="status" let-element>
+  <span
+    class="status-label"
+    [ngClass]="{
+      'status-active': element.status === 'Active',
+      'status-inactive': element.status === 'Inactive',
+      'status-prod': element.status === 'Prod'
+    }"
+  >
+    {{ element.status }}
+  </span>
+</ng-template>
