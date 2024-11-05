@@ -1,15 +1,27 @@
-<ng-template appCellDef="campaignDetails" let-element>
-  <div class="campaign-details-dropdown-container" (click)="element.isExpanded = !element.isExpanded">
-    <span class="menu-more-focus" tabindex="0">
-      Campaign Details
-      <img src="assets/img/arrow-expand_2.png" alt="expand" class="material-icons" />
-    </span>
-    
-    <!-- Dropdown content -->
-    <ul *ngIf="element.isExpanded && element.campaignDetails?.length > 0" class="campaign-details-list">
-      <li *ngFor="let detail of element.campaignDetails">
-        {{ detail.campaignId }} - {{ detail.campaignName }}
-      </li>
-    </ul>
-  </div>
-</ng-template>
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  private tokenUrl = 'https://sl73vcmpapp013.visa.com:8445/oauth2-service/oauth2/token';
+
+  constructor(private http: HttpClient) {}
+
+  getAuthToken(): Observable<any> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'SM-USER': 'sypasha',
+    });
+
+    const body = new HttpParams()
+      .set('grant_type', 'client_credentials')
+      .set('client_id', 'vcmp_microservice')
+      .set('client_secret', '9oZhE!7Vuju8g>-')
+      .set('scope', 'vcmp.client');
+
+    return this.http.post(this.tokenUrl, body.toString(), { headers });
+  }
+}
