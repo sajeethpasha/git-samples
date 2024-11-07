@@ -1,0 +1,19 @@
+.campaign-details-dropdown-container {
+    position: relative;
+    cursor: pointer;
+  }
+  
+  .campaign-details-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    z-index: 1000;
+  }
+  
+  .campaign-details-list li {
+    padding: 8px 12px;
+  }
+  
