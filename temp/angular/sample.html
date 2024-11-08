@@ -1,42 +1,15 @@
-<app-search-table
-  [columns]="columns"
-  sorting="static"
-  entity="email"
-  pageTitle="Emails"
-  [advancedSearchFields]="advancedSearchFields"
-  [quickSearchField]="quickSearchField"
-  sortDirection="asc"
-  sortActive="text"
-  [search]="search.bind(this)"
-  moreColumns="true"
->
-  <ng-template appCellDef="templateName" let-element>
-    <a tabindex="0" (click)="navigateToView(element)" (keyup.enter)="navigateToView(element)">
-      {{ element.templateName }}
-    </a>
-  </ng-template>
+<ng-template appCellDef="campaignDetails" let-element>
+  <div class="campaign-details-dropdown-container" (click)="element.isExpanded = !element.isExpanded">
+    <span class="menu-more-focus" tabindex="0">
+      Campaign Details
+      <img src="assets/img/arrow-expand_2.png" alt="expand" class="material-icons" />
+    </span>
 
-  <ng-template appCellDef="status" let-element>
-    <a tabindex="0" (click)="navigateToView(element)" (keyup.enter)="navigateToView(element)">
-      {{ element.status }}
-    </a>
-  </ng-template>
-
-  <ng-template appCellDef="campaignDetails" let-element>
-    <div class="campaign-details-dropdown-container" (click)="toggleDropdown(element)">
-      <span class="menu-more-focus" tabindex="0">
-        Campaign Details
-        <img src="assets/img/arrow-expand_2.png" alt="expand" class="material-icons" />
-      </span>
-      <ul *ngIf="element.isExpanded" class="campaign-details-list">
-        <li *ngFor="let detail of element.campaignDetails">
-          {{ detail.campaignId }} - {{ detail.campaignName }}
-        </li>
-      </ul>
-    </div>
-  </ng-template>
-
-  <ng-template #tileView let-element>
-    <app-email-tile-view [element]="element" (tileClick)="navigateToView(element)"></app-email-tile-view>
-  </ng-template>
-</app-search-table>
+    <!-- Dropdown content -->
+    <ul *ngIf="element.isExpanded && element.campaignDetails?.length > 0" class="campaign-details-list">
+      <li *ngFor="let detail of element.campaignDetails">
+        {{ detail.campaignId }} - {{ detail.campaignName }}
+      </li>
+    </ul>
+  </div>
+</ng-template>
