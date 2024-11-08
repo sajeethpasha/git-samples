@@ -3,8 +3,8 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class YourServiceClass {
-    private static final Logger logger = LoggerFactory.getLogger(YourServiceClass.class);
+public class text2 {
+    private static final Logger logger = LoggerFactory.getLogger(text2.class);
 
     public Mono<InventoryLotNumber> createLotNumber(String organizationCode, String workOrderNumber, Boolean partialLotFlag) {
         Instant start = Instant.now();  // Start time
