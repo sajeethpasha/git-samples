@@ -1,31 +1,36 @@
-import { Component } from '@angular/core';
+import { Component, Injector, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-campaign-details',
-  templateUrl: './campaign-details.component.html',
-  styleUrls: ['./campaign-details.component.scss']
+  selector: 'app-email-search',
+  templateUrl: './email-search.component.html',
+  styleUrls: ['./email-search.component.scss'],
 })
-export class CampaignDetailsComponent {
+export class EmailSearchComponent extends AbstractListPageComponent implements OnInit {
   campaigns = [
-    { name: 'Campaign-Name', link: '/campaign/1' },
-    { name: 'Campaign-Name-with-extra-length', link: '/campaign/2' },
-    { name: 'Campaign-Name-with-extra-length', link: '/campaign/3' },
-    { name: 'Campaign-Name-with-extra-length', link: '/campaign/4' },
+    { campaignId: '123', campaignName: 'Holiday Campaign' },
+    { campaignId: '456', campaignName: 'Spring Sale' },
+    { campaignId: '789', campaignName: 'Back to School' },
   ];
 
-  get displayCampaignText() {
-    if (this.campaigns.length > 1) {
-      return `${this.campaigns[0].name} (+${this.campaigns.length - 1})`;
-    }
-    return this.campaigns[0]?.name || 'No Campaigns';
+  constructor(
+    private injector: Injector,
+    // other services here
+  ) {
+    super(injector);
   }
 
-  /**
-   * Helper method to format the campaign details for display.
-   * @param details Array of campaign objects.
-   * @returns A formatted string of campaign names.
-   */
-  formatCampaignDetails(details: any[]): string {
-    return details.map(detail => detail.name).join(', ');
+  ngOnInit() {
+    // Your initialization code here
+  }
+
+  transformCampaignDetailsForRow(campaignDetails: any[]): any[] {
+    return campaignDetails.map((detail) => ({
+      label: detail.campaignName,
+      value: detail.campaignId,
+    }));
+  }
+
+  onSubTenantChange() {
+    console.log("Sub-tenant changed.");
   }
 }
