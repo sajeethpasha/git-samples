@@ -19,4 +19,13 @@ export class CampaignDetailsComponent {
     }
     return this.campaigns[0]?.name || 'No Campaigns';
   }
+
+  /**
+   * Helper method to format the campaign details for display.
+   * @param details Array of campaign objects.
+   * @returns A formatted string of campaign names.
+   */
+  formatCampaignDetails(details: any[]): string {
+    return details.map(detail => detail.name).join(', ');
+  }
 }
