@@ -29,14 +29,15 @@ class WorkOrderDomainClientLoggingDecoratorTest {
     void updateWorkOrder() {
         // Arrange
         WorkOrderUpdateRequest request = new WorkOrderUpdateRequest();
-        Mono<WorkOrder> expectedResponse = Mono.just(new WorkOrder());
+        WorkOrder expectedWorkOrder = new WorkOrder();
+        Mono<WorkOrder> expectedResponse = Mono.just(expectedWorkOrder);
         when(decorated.updateWorkOrder(any(WorkOrderUpdateRequest.class))).thenReturn(expectedResponse);
 
         // Act
-        Mono<WorkOrder> result = loggingDecorator.updateWorkOrder(request).block();
+        WorkOrder result = loggingDecorator.updateWorkOrder(request).block();
 
         // Assert
-        assertEquals(expectedResponse.block(), result);
+        assertEquals(expectedWorkOrder, result);
         verify(logger, times(1)).info(eq("Update work order with request body: {}"), anyString());
         verify(decorated, times(1)).updateWorkOrder(request);
     }
@@ -56,3 +57,4 @@ class WorkOrderUpdateRequest {
 class WorkOrder {
     // Fields and methods for WorkOrder
 }
+....
