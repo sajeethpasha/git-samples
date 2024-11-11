@@ -1,21 +1,62 @@
-.campaign-details-dropdown-container {
+.campaign-details-container {
   position: relative;
-  cursor: pointer;
+  display: inline-block;
 }
 
-.campaign-details-list {
+.campaign-display {
+  cursor: pointer;
+  background-color: #f5f5f5;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dropdown-icon {
+  margin-left: 8px;
+  transition: transform 0.3s ease;
+}
+
+.dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
+.campaign-dropdown {
   position: absolute;
-  top: 100%; /* Position it below the container */
+  top: 100%;
   left: 0;
   background: white;
   border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  list-style: none;
-  padding: 0;
-  margin: 0;
   width: max-content;
+  padding: 0;
+  list-style: none;
+  margin: 4px 0 0;
 }
 
-.campaign-details-list li {
+.campaign-dropdown li {
   padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+}
+
+.campaign-dropdown a {
+  text-decoration: none;
+  color: #007bff;
+  flex-grow: 1;
+}
+
+.external-link-icon {
+  margin-left: 8px;
+  font-size: 16px;
+  color: #007bff;
 }
