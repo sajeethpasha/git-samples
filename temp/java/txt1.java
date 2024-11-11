@@ -33,10 +33,10 @@ class WorkOrderDomainClientLoggingDecoratorTest {
         when(decorated.updateWorkOrder(any(WorkOrderUpdateRequest.class))).thenReturn(expectedResponse);
 
         // Act
-        Mono<WorkOrder> result = loggingDecorator.updateWorkOrder(request);
+        Mono<WorkOrder> result = loggingDecorator.updateWorkOrder(request).block();
 
         // Assert
-        assertEquals(expectedResponse, result);
+        assertEquals(expectedResponse.block(), result);
         verify(logger, times(1)).info(eq("Update work order with request body: {}"), anyString());
         verify(decorated, times(1)).updateWorkOrder(request);
     }
