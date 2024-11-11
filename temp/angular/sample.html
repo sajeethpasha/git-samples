@@ -1,13 +1,15 @@
 <div class="campaign-details-container">
-  <div class="campaign-display" (click)="toggleDropdown()">
+  <button mat-button [matMenuTriggerFor]="campaignMenu">
     {{ displayCampaignText }}
-    <span class="dropdown-icon" [class.open]="isDropdownOpen">&#x25BC;</span>
-  </div>
-  
-  <ul class="campaign-dropdown" *ngIf="isDropdownOpen">
-    <li *ngFor="let campaign of campaigns">
-      <a [href]="campaign.link" target="_blank">{{ campaign.name }}</a>
-      <span class="external-link-icon">&#x1F517;</span>
-    </li>
-  </ul>
+    <mat-icon>arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #campaignMenu="matMenu">
+    <ng-container *ngFor="let campaign of campaigns">
+      <button mat-menu-item [routerLink]="campaign.link" target="_blank">
+        <span>{{ campaign.name }}</span>
+        <mat-icon>open_in_new</mat-icon>
+      </button>
+    </ng-container>
+  </mat-menu>
 </div>

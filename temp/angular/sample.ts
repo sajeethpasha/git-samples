@@ -12,17 +12,11 @@ export class CampaignDetailsComponent {
     { name: 'Campaign-Name-with-extra-length', link: '/campaign/3' },
     { name: 'Campaign-Name-with-extra-length', link: '/campaign/4' },
   ];
-  
-  isDropdownOpen = false;
 
   get displayCampaignText() {
     if (this.campaigns.length > 1) {
       return `${this.campaigns[0].name} (+${this.campaigns.length - 1})`;
     }
     return this.campaigns[0]?.name || 'No Campaigns';
-  }
-
-  toggleDropdown() {
-    this.isDropdownOpen = !this.isDropdownOpen;
   }
 }
