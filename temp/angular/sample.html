@@ -1,9 +1,11 @@
 <div class="campaign-details-container">
+  <!-- Button that triggers the dropdown with Angular Material -->
   <button mat-button [matMenuTriggerFor]="campaignMenu">
     {{ displayCampaignText }}
     <mat-icon>arrow_drop_down</mat-icon>
   </button>
 
+  <!-- Angular Material Menu for Campaign List -->
   <mat-menu #campaignMenu="matMenu">
     <ng-container *ngFor="let campaign of campaigns">
       <button mat-menu-item [routerLink]="campaign.link" target="_blank">
