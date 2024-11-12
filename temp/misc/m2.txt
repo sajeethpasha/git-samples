@@ -1,0 +1,36 @@
+# Performance Improvements Summary
+
+### Performance Improvements in Bullet Points:
+
+1. **Avoidance of Stream Overhead**:
+   - Removed the use of `Arrays.stream()` to count elements in the response array.
+   - Directly checking the array length (`responseArray.length > 0`) is **faster** and avoids the **overhead** of stream creation and iteration.
+
+2. **Simplified Control Flow**:
+   - The new version has a **simpler and more direct** approach to checking and returning the response.
+   - Fewer intermediate operations lead to **lower processing time** and **reduced complexity**.
+
+3. **Reduced Object Creation**:
+   - The old version used streams which led to **intermediate object creation**.
+   - By eliminating the stream usage, the new code **reduces memory consumption** and minimizes **garbage collection pressure**.
+
+4. **Lower Memory Footprint**:
+   - Fewer temporary objects and simplified handling reduce **memory usage**.
+   - This is beneficial for **high-throughput scenarios**, where repeated creation of temporary objects can increase the load on the garbage collector.
+
+5. **Improved Error Handling**:
+   - The new code explicitly handles empty responses using `Mono.error(new RuntimeException(...))`, which results in **clearer error flow**.
+   - The specific error handling path makes it easier to understand and debug, contributing to **better code maintainability**.
+
+6. **Faster Response Processing**:
+   - The direct length check is an **O(1)** operation, while the stream-based counting was **O(n)**, leading to significant performance gains, especially for larger arrays.
+
+7. **Reduced Resource Usage**:
+   - **CPU usage** is reduced by avoiding unnecessary stream operations.
+   - **Memory usage** is minimized due to fewer intermediate data structures.
+
+8. **Scalability**:
+   - The reduction in computational overhead and memory usage makes the new version more **scalable**, especially under **high load conditions**.
+
+These improvements make the new code more efficient, reduce the complexity of operations, and provide better performance and resource management without sacrificing functionality.
+
