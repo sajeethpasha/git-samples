@@ -1,60 +1,32 @@
-package com.sherwin.edps.batchmgmtbff.clients;
+public Mono<InventoryLotNumber> createLotNumber(String organizationCode, String workOrderNumber, Boolean partialLotFlag) {
+    logger.info("Create lot number with organization code: {} and work order number: {}", organizationCode, workOrderNumber);
 
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
-import reactor.core.publisher.Mono;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.extension.ExtendWith;
-
-@ExtendWith(MockitoExtension.class)
-class WorkOrderDomainClientLoggingDecoratorTest {
-
-    @Mock
-    private Logger logger;
-
-    @Mock
-    private WorkOrderDomainClient decorated;
-
-    @InjectMocks
-    private WorkOrderDomainClientLoggingDecorator loggingDecorator;
-
-    @Test
-    void updateWorkOrder() {
-        // Arrange
-        WorkOrderUpdateRequest request = new WorkOrderUpdateRequest();
-        WorkOrder expectedWorkOrder = new WorkOrder();
-        Mono<WorkOrder> expectedResponse = Mono.just(expectedWorkOrder);
-        when(decorated.updateWorkOrder(any(WorkOrderUpdateRequest.class))).thenReturn(expectedResponse);
-
-        // Act
-        WorkOrder result = loggingDecorator.updateWorkOrder(request).block();
-
-        // Assert
-        assertEquals(expectedWorkOrder, result);
-        verify(logger, times(1)).info(eq("Update work order with request body: {}"), anyString());
-        verify(decorated, times(1)).updateWorkOrder(request);
-    }
+    return webClient.get()
+            .uri(uriBuilder -> uriBuilder
+                    .path("/codeZLogic")
+                    .queryParam("organizationCode", organizationCode)
+                    .queryParam("workOrderNumber", workOrderNumber)
+                    .queryParam("partialLotFlag", partialLotFlag)
+                    .build())
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .onStatus(HttpStatus::isError, response -> 
+                response.bodyToMono(String.class)
+                        .flatMap(errorBody -> {
+                            logger.error("Error response from lot number service: {}", errorBody);
+                            return Mono.error(new RuntimeException(errorBody));
+                        })
+            )
+            .bodyToMono(InventoryLotNumberResponse[].class)
+            .flatMap(responseArray -> {
+                if (responseArray.length > 0) {
+                    return Mono.just(responseArray[0].toModel());
+                } else {
+                    return Mono.error(new RuntimeException("No response returned from lot number service"));
+                }
+            })
+            .onErrorMap(error -> {
+                logger.error("Non-Group lot number creation failed with exception: {}", error.getMessage());
+                return new LotNumberException(error.getMessage());
+            });
 }
-
-// Additional mock classes for compilation purposes
-class WorkOrderDomainClient {
-    public Mono<WorkOrder> updateWorkOrder(WorkOrderUpdateRequest request) {
-        return Mono.empty();
-    }
-}
-
-class WorkOrderUpdateRequest {
-    // Fields and methods for WorkOrderUpdateRequest
-}
-
-class WorkOrder {
-    // Fields and methods for WorkOrder
-}
-....
