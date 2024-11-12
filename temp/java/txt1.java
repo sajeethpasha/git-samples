@@ -10,7 +10,7 @@ public Mono<InventoryLotNumber> createLotNumber(String organizationCode, String 
                     .build())
             .accept(MediaType.APPLICATION_JSON)
             .retrieve()
-            .onStatus(HttpStatus::isError, response -> 
+            .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> 
                 response.bodyToMono(String.class)
                         .flatMap(errorBody -> {
                             logger.error("Error response from lot number service: {}", errorBody);
