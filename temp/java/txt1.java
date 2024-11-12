@@ -1,37 +1,28 @@
-public Mono<InventoryLotNumber> createLotNumber(String organizationCode, String workOrderNumber, Boolean partialLotFlag) {
-    logger.info("Create lot number with organization code: {} and work order number: {}", organizationCode, workOrderNumber);
-    
-    long startTime = System.currentTimeMillis();
+public Mono<List<LotNumber>> generateLotForGroupedBatch(String organizationCode, Boolean partialLotFlag, List<WorkOrder> sortedList) {
+    System.out.println("Checking site code details for grouped batch for the organization code " + organizationCode);
 
-    return webClient.get()
-            .uri(uriBuilder -> uriBuilder
-                    .path("/codeZLogic")
-                    .queryParam("organizationCode", organizationCode)
-                    .queryParam("workOrderNumber", workOrderNumber)
-                    .queryParam("partialLotFlag", partialLotFlag)
-                    .build())
-            .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> 
-                response.bodyToMono(String.class)
-                        .flatMap(errorBody -> {
-                            logger.error("Error response from lot number service: {}", errorBody);
-                            return Mono.error(new RuntimeException(errorBody));
-                        })
-            )
-            .bodyToMono(InventoryLotNumberResponse[].class)
-            .flatMap(responseArray -> {
-                long endTime = System.currentTimeMillis();
-                logger.info("Time taken for API call: {} ms", (endTime - startTime));
-                
-                if (responseArray.length > 0) {
-                    return Mono.just(responseArray[0].toModel());
-                } else {
-                    return Mono.error(new RuntimeException("No response returned from lot number service"));
-                }
-            })
-            .onErrorMap(error -> {
-                logger.error("Non-Group lot number creation failed with exception: {}", error.getMessage());
-                return new LotNumberException(error.getMessage());
-            });
+    long startTime = System.currentTimeMillis();
+    SiteCodeDetailsEntity siteDetails = siteCodesRepository.findByMeaningAndLookUpTypeEquals(organizationCode, "XXSW_CODEZ_ORG");
+    long endTime = System.currentTimeMillis();
+
+    System.out.println("Time taken to fetch site code details: " + (endTime - startTime) + " ms");
+
+    if (siteDetails == null) {
+        throw new LotNumberException("The Lot Number Cannot be generated for this Organization Code " + organizationCode);
+    } else {
+        System.out.println("sortedList size ===> " + sortedList.size());
+        return Flux.fromIterable(sortedList)
+                .concatMap(workOrders -> {
+                    System.out.println("Checking item type for the item number in grouped batch " + workOrders.getItemNumber());
+                    return itemService.checkItemType(partialLotFlag, workOrders);
+                })
+                .collectList()
+                .flatMap(lotNumbers -> {
+                    if (lotNumbers.isEmpty()) {
+                        return Mono.error(new LotNumberException("No lot number is generated for grouped batch. Check logs for any errors"));
+                    }
+                    return Mono.just(lotNumbers);
+                })
+                .doOnError(e -> System.out.println("Error processing generateLotForNonGroupedBatch: " + e.getMessage()));
+    }
 }
