@@ -1,5 +1,7 @@
 public Mono<InventoryLotNumber> createLotNumber(String organizationCode, String workOrderNumber, Boolean partialLotFlag) {
     logger.info("Create lot number with organization code: {} and work order number: {}", organizationCode, workOrderNumber);
+    
+    long startTime = System.currentTimeMillis();
 
     return webClient.get()
             .uri(uriBuilder -> uriBuilder
@@ -19,6 +21,9 @@ public Mono<InventoryLotNumber> createLotNumber(String organizationCode, String 
             )
             .bodyToMono(InventoryLotNumberResponse[].class)
             .flatMap(responseArray -> {
+                long endTime = System.currentTimeMillis();
+                logger.info("Time taken for API call: {} ms", (endTime - startTime));
+                
                 if (responseArray.length > 0) {
                     return Mono.just(responseArray[0].toModel());
                 } else {
