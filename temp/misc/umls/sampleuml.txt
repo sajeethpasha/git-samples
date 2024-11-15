@@ -1,0 +1,21 @@
+@startuml
+actor Client
+participant "Controller" as Controller
+participant "Service" as Service
+participant "Client" as ClientApi
+participant "DB" as Database
+
+Client -> Controller : GET /batchWorkOrders
+Controller -> Service : getBatchWorkDetails(organizationCode, workOrderNumber, partialLotFlag)
+Service -> ClientApi : getGroupNumberDetails(organizationCode, "G-" + workOrderNumber)
+ClientApi --> Service : WorkOrder[]
+Service -> Service : filter(workNumber.getDescription() == "G-" + workOrderNumber)
+Service -> Service : collectSortedList(sorted by workOrderNumber)
+alt sortedList.isEmpty
+    Service -> Service : generateLotForNonGroupedBatch(organizationCode, workOrderNumber, partialLotFlag)
+else
+    Service -> Service : generateLotForGroupedBatch(organizationCode, partialLotFlag, sortedList)
+end
+Service --> Controller : Mono<List<LotNumber>>
+Controller --> Client : ResponseEntity<Mono<List<LotNumber>>>
+@enduml
