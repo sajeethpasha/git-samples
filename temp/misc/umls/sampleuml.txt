@@ -1,9 +1,9 @@
 @startuml
-actor Client
+participant "Client" as Client
 participant "Controller" as Controller
 participant "Service" as Service
-participant "Client" as ClientApi
-participant "DB" as Database
+participant "ClientApi" as ClientApi
+participant "Database" as DB
 
 Client -> Controller : GET /batchWorkOrders
 Controller -> Service : getBatchWorkDetails(organizationCode, workOrderNumber, partialLotFlag)
