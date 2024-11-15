@@ -1,0 +1,149 @@
+<mxfile host="app.diagrams.net" modified="2023-11-15T12:00:00.000Z" agent="Mozilla/5.0" etag="abc123" version="15.8.7" type="device">
+  <diagram id="flow1" name="Vertical Flow Diagram">
+    <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Start Node -->
+        <mxCell id="2" value="Client Request: /batchWorkOrders" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Controller Layer -->
+        <mxCell id="3" value="Controller: getBatchWorkDetails()" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Service Layer -->
+        <mxCell id="5" value="Service: getBatchWorkDetails()" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="250" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="3" target="5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Retrieve Group Number Details -->
+        <mxCell id="7" value="Retrieve Group Number Details" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="5" target="7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Conditional: Is sortedList Empty? -->
+        <mxCell id="9" value="Is sortedList Empty?" style="shape=rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="450" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="7" target="9">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Yes Branch -->
+        <mxCell id="11" value="Generate Lot for Non-Grouped Batch" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="550" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="Yes" style="edgeStyle=elbowEdgeStyle;elbow=horizontal;" edge="1" parent="1" source="9" target="11">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="490" as="sourcePoint"/>
+            <mxPoint x="300" y="580" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- No Branch -->
+        <mxCell id="13" value="Generate Lot for Grouped Batch" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="550" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="No" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="9" target="13">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Common Process: Check Site Code Details -->
+        <mxCell id="15" value="Check Site Code Details" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="650" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Edges from Both Branches to Common Process -->
+        <mxCell id="16" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="13" target="15">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="17" value="" style="edgeStyle=elbowEdgeStyle;elbow=horizontal;" edge="1" parent="1" source="11" target="15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="580" as="sourcePoint"/>
+            <mxPoint x="200" y="580" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Conditional: Is Site Code Details Null? -->
+        <mxCell id="18" value="Is Site Code Details Null?" style="shape=rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="750" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="19" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="15" target="18">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Yes Branch (Throws Exception) -->
+        <mxCell id="20" value="Throw LotNumberException" style="shape=terminator;whiteSpace=wrap;html=1;fillColor=#ffcccc;" vertex="1" parent="1">
+          <mxGeometry x="350" y="850" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" value="Yes" style="edgeStyle=elbowEdgeStyle;elbow=horizontal;" edge="1" parent="1" source="18" target="20">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="790" as="sourcePoint"/>
+            <mxPoint x="300" y="880" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- No Branch (Proceed) -->
+        <mxCell id="22" value="Process Work Orders" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="850" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="23" value="No" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="18" target="22">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Check Item Type -->
+        <mxCell id="24" value="Check Item Type for Each Work Order" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="950" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="25" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="22" target="24">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Collect Lot Numbers -->
+        <mxCell id="26" value="Collect Lot Numbers" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1050" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="27" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="24" target="26">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Conditional: Are Lot Numbers Empty? -->
+        <mxCell id="28" value="Are Lot Numbers Empty?" style="shape=rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1150" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="29" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="26" target="28">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Yes Branch (Throws Exception) -->
+        <mxCell id="30" value="Throw LotNumberException" style="shape=terminator;whiteSpace=wrap;html=1;fillColor=#ffcccc;" vertex="1" parent="1">
+          <mxGeometry x="350" y="1250" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="31" value="Yes" style="edgeStyle=elbowEdgeStyle;elbow=horizontal;" edge="1" parent="1" source="28" target="30">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="1190" as="sourcePoint"/>
+            <mxPoint x="300" y="1280" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- No Branch (Return Lot Numbers) -->
+        <mxCell id="32" value="Return Lot Numbers" style="shape=terminator;whiteSpace=wrap;html=1;fillColor=#ccffcc;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1250" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="33" value="No" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="28" target="32">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- End Node -->
+        <mxCell id="34" value="Response to Client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccffcc;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1350" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="35" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;" edge="1" parent="1" source="32" target="34">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Error Handling Edge -->
+        <mxCell id="36" value="Error" style="edgeStyle=elbowEdgeStyle;elbow=horizontal;dashed=1;strokeColor=#ff0000;" edge="1" parent="1" source="30" target="34">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="1280" as="sourcePoint"/>
+            <mxPoint x="200" y="1280" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
