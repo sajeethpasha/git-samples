@@ -1,35 +1,22 @@
-<app-search-table
-  [columns]="columns"
-  sorting="static"
-  entity="email"
-  pageTitle="Emails"
-  [search]="search.bind(this)"
-  moreColumns="true"
->
-  <ng-template appCellDef="status" let-element>
-    <ng-container>
-      <div class="btn-group-vertical status-column" style="width: 85px;">
-        <div class="status-bar">
-          <ul>
-            <!-- Define color and label logic for the status -->
-            <li [attr.bg-color]="element.status === 'Active' ? 'green' : (element.status === 'Inactive' ? 'red' : 'gray')">
-              <span>{{ element.status }}</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </ng-container>
-  </ng-template>
-
-  <ng-template appCellDef="campaignDetails" let-element>
-    <ng-container>
-      <mat-form-field appearance="fill" class="campaign-dropdown">
-        <mat-select [value]="element.selectedCampaign" placeholder="Select Campaign">
-          <mat-option *ngFor="let campaign of element.campaignDetails" [value]="campaign.campaignId">
-            {{ campaign.campaignName }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </ng-container>
-  </ng-template>
-</app-search-table>
+<ng-template appCellDef="status" let-element>
+  <ng-container>
+    <div class="status-bar-container">
+      <ul class="status-bar">
+        <!-- Define multiple status segments -->
+        <li
+          *ngIf="element.status === 'Active'"
+          [attr.bg-color]="'green'"
+        ></li>
+        <li
+          *ngIf="element.status === 'Inactive'"
+          [attr.bg-color]="'red'"
+        ></li>
+        <li
+          *ngIf="element.status === 'Prod'"
+          [attr.bg-color]="'blue'"
+        ></li>
+      </ul>
+      <span class="status-label">{{ element.status }}</span>
+    </div>
+  </ng-container>
+</ng-template>
