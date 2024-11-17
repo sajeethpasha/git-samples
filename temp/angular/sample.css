@@ -1,46 +1,46 @@
-/* Style for the status bar container */
+/* Container for the status bar and label */
 .status-bar-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px; /* Space between bar and label */
   width: 100%;
 }
 
-/* Style for the status bar */
+/* The status bar itself */
 .status-bar {
   display: flex;
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  width: 100px; /* Adjust bar width */
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
+  width: 100px; /* Adjust width as required */
+  height: 10px;
   background-color: #e0e0e0; /* Default background color */
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
 }
 
 /* Individual segments of the status bar */
-.status-bar li {
+.status-segment {
   flex-grow: 1;
   height: 100%;
+  transition: background-color 0.3s ease;
 }
 
-/* Define colors for each status */
-.status-bar li[bg-color="green"] {
-  background-color: #4caf50; /* Active */
+/* Colors for each status */
+.status-segment.active {
+  background-color: #4caf50; /* Green for Active */
 }
 
-.status-bar li[bg-color="red"] {
-  background-color: #f44336; /* Inactive */
+.status-segment.inactive {
+  background-color: #f44336; /* Red for Inactive */
 }
 
-.status-bar li[bg-color="blue"] {
-  background-color: #2196f3; /* Prod */
+.status-segment.prod {
+  background-color: #2196f3; /* Blue for Prod */
 }
 
-/* Label style for status text */
+/* Label styling */
 .status-label {
-  margin-left: 8px;
   font-size: 14px;
   color: #333;
+  text-transform: capitalize; /* Optional: Capitalize first letters */
 }

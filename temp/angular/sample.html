@@ -1,22 +1,15 @@
 <ng-template appCellDef="status" let-element>
-  <ng-container>
-    <div class="status-bar-container">
-      <ul class="status-bar">
-        <!-- Define multiple status segments -->
-        <li
-          *ngIf="element.status === 'Active'"
-          [attr.bg-color]="'green'"
-        ></li>
-        <li
-          *ngIf="element.status === 'Inactive'"
-          [attr.bg-color]="'red'"
-        ></li>
-        <li
-          *ngIf="element.status === 'Prod'"
-          [attr.bg-color]="'blue'"
-        ></li>
-      </ul>
-      <span class="status-label">{{ element.status }}</span>
+  <div class="status-bar-container">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span
+        class="status-segment"
+        [class.active]="element.status === 'Active'"
+        [class.inactive]="element.status === 'Inactive'"
+        [class.prod]="element.status === 'Prod'"
+      ></span>
     </div>
-  </ng-container>
+    <!-- Status Label -->
+    <div class="status-label">{{ element.status }}</div>
+  </div>
 </ng-template>
