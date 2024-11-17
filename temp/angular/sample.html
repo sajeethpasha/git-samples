@@ -7,3 +7,14 @@
     </mat-select>
   </mat-form-field>
 </ng-template>
+
+---------------
+<ng-template appCellDef="campaignDetails" let-element>
+  <mat-form-field appearance="fill" class="campaign-dropdown">
+    <mat-select [(value)]="element.selectedCampaign" placeholder="Select Campaign">
+      <mat-option *ngFor="let campaign of element.campaignDetails" [value]="campaign.campaignId">
+        {{ campaign.campaignName }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+</ng-template>
