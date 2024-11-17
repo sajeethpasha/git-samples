@@ -1,33 +1,27 @@
-.campaign-details-container {
-  display: inline-block;
-  margin: 10px;
-
-  button[mat-button] {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    text-transform: none; // Remove default uppercase text styling from Angular Material
-  }
-
-  mat-icon {
-    margin-left: 8px;
-  }
-}
-
-mat-menu {
-  min-width: 220px; // Set a minimum width for the dropdown
-}
-
-mat-menu-item {
+/* General styling for status bar */
+.status-bar ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+}
 
-  span {
-    flex-grow: 1;
-  }
+.status-bar li {
+  height: 10px;
+  flex-grow: 1;
+  margin-right: 2px;
+  border-radius: 2px;
+  background-color: lightgray; /* Default color */
+}
 
-  mat-icon {
-    color: #007bff;
-  }
+.status-bar li[bg-color='green'] {
+  background-color: #4caf50; /* Active */
+}
+
+.status-bar li[bg-color='red'] {
+  background-color: #f44336; /* Inactive */
+}
+
+.status-bar li[bg-color='gray'] {
+  background-color: #9e9e9e; /* Default/Unknown */
 }
