@@ -1,37 +1,9 @@
-<div class="campaign-details-container">
-  <!-- Button that triggers the dropdown with Angular Material -->
-  <button mat-button [matMenuTriggerFor]="campaignMenu">
-    {{ displayCampaignText }}
-    <mat-icon>arrow_drop_down</mat-icon>
-  </button>
-
-  <!-- Angular Material Menu for Campaign List -->
-  <mat-menu #campaignMenu="matMenu">
-    <ng-container *ngFor="let campaign of campaigns">
-      <button mat-menu-item [routerLink]="campaign.link" target="_blank">
-        <span>{{ campaign.name }}</span>
-        <mat-icon>open_in_new</mat-icon>
-      </button>
-    </ng-container>
-  </mat-menu>
-</div>
-
-<!-- Assuming this is the Angular Material table for displaying campaign details -->
-<mat-table [dataSource]="campaigns">
-  <!-- Other columns here -->
-
-  <!-- Campaign Details Column -->
-  <ng-container matColumnDef="campaignDetails">
-    <th mat-header-cell *matHeaderCellDef> Campaign Details </th>
-    <td mat-cell *matCellDef="let element">
-      <div *ngIf="element.campaignDetails?.length > 0; else noDetails">
-        <span>{{ formatCampaignDetails(element.campaignDetails) }}</span>
-      </div>
-      <ng-template #noDetails>No Campaigns</ng-template>
-    </td>
-  </ng-container>
-
-  <!-- Table row definition -->
-  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-  <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
-</mat-table>
+<ng-template appCellDef="campaignDetails" let-element>
+  <mat-form-field appearance="fill" class="campaign-dropdown">
+    <mat-select [(value)]="element.selectedCampaign" placeholder="Associated Campaigns">
+      <mat-option *ngFor="let campaign of element.campaignList" [value]="campaign">
+        {{ campaign }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+</ng-template>
