@@ -1,21 +1,57 @@
-# Update on My Work Status
+### Endpoint Details for Unit of Measure Conversion
 
-Hi Rima,
+The endpoint being utilized is:
 
-I hope you’re doing well. I wanted to inform you that I will be unavailable tomorrow as I have a ritual to attend in my hometown. Unfortunately, I won’t be able to be online until after Tuesday. Thank you for your understanding and support!
+`/{item-id}/conversion/{uom-code}/gallons`
 
-Here’s an update on my work status:
+This endpoint is used to perform conversions between units of measure, specifically for converting from kilograms to liters. While it has been suggested to rename this API, such a change would not yield any performance improvement. Therefore, it is recommended to retain the current naming convention.
 
-## UI
-- Pratham provided a new JSON file, and I have updated the UI data views based on it.
-- API integration is pending, and the dropdown functionality needs to be updated.
+Currently, the PMX Backend-for-Frontend (BFF) implementation is not aligned with BAMA BFF, but changes are in progress to address this. Furthermore, an alternative endpoint has been identified for conversions from kilograms to liters, as follows:
 
-## Backend
-- Since the vulnerability check for the `vcs-auth-service` is a high priority, I had a discussion with Pranitha, who provided some initial details.
-- I have cloned the code locally and attempted to set up the environment, but I am encountering a Gradle build failure issue.
-- I am currently reviewing the flow to resolve this issue.
+`/conversion/{item-id}/LT/{uom-code}`
 
-Please let me know if there’s anything else you’d like me to prioritize.
+This alternative endpoint provides a conversion to liters, which fulfills the current requirement. It is advisable to consider whether this endpoint can be leveraged to meet the necessary conversion requirements.
 
-Best regards,  
-[Your Name]
+Both of these conversion endpoints invoke a domain API to retrieve the `interclassConversion` values. The relevant domain API endpoint is:
+
+```
+https://dev-wbm-inv.np-edps-aks.shwaks.com/api/v1/inventory/unit-of-measure-classes/WEIGHT/conversions/inter?inventoryItemId=100003357085427
+```
+
+#### Sample Request and Response
+
+**Request:**
+```bash
+curl -X GET "https://dev-wbm-inv.np-edps-aks.shwaks.com/api/v1/inventory/unit-of-measure-classes/WEIGHT/conversions/inter?inventoryItemId=100003357085427&toUOMCode=LT&fromUOMCode=KG" -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+    "items": [
+        {
+            "interclassConversionId": 300002483821336,
+            "inventoryItemId": 100003357085427,
+            "fromUOMClassId": "9",
+            "fromUOMCode": "KG",
+            "toUOMClassId": "8",
+            "toUOMCode": "LT",
+            "interclassConversion": 0.94,
+            "interclassConversionEndDate": null,
+            "itemNumber": "395485",
+            "createdBy": "XXSW_CONVERSION",
+            "creationDate": "2024-02-23",
+            "lastUpdatedBy": "erpcloudintscmuser",
+            "lastUpdateDate": "2024-07-03"
+        }
+    ],
+    "count": 1,
+    "hasMore": false,
+    "limit": 25,
+    "offset": 0,
+    "totalResults": 1
+}
+```
+
+This response contains all the relevant details for the conversion, including conversion factors, metadata, and the inventory item details.
+
