@@ -1,12 +1,12 @@
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class SamGlassRankerTest {
@@ -16,7 +16,7 @@ public class SamGlassRankerTest {
     private SelectionInput selectionInput;
     private NodeSelectedContent nodeSelectedContent;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         samGlassRanker = new SamGlassRanker();
         adsConfig = Mockito.mock(AdsConfig.class);
@@ -77,7 +77,11 @@ public class SamGlassRankerTest {
         when(adsConfig.getModel()).thenThrow(new RuntimeException("Mock Exception"));
 
         // Act & Assert
-        assertDoesNotThrow(() -> samGlassRanker.processContent("zone1", nodeSelectedContent, adsConfig, selectionInput));
+        try {
+            samGlassRanker.processContent("zone1", nodeSelectedContent, adsConfig, selectionInput);
+        } catch (Exception e) {
+            fail("Exception should not be thrown");
+        }
     }
 
     @Test
