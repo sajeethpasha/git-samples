@@ -1,24 +1,23 @@
 package com.creditone.enterprise.originintegration.services;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
 import com.creditone.enterprise.originintegration.dto.deployment.DeploymentEventRequest;
 import com.creditone.enterprise.originintegration.dto.mergeRequest.MergeRequestEventRequest;
 import com.creditone.enterprise.originintegration.exception.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 
-/**
- * Comprehensive test cases for WebhookEventProcess, DeploymentProcess, and MergeRequestProcess.
- */
-@ExtendWith(MockitoExtension.class)
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@RunWith(MockitoJUnitRunner.class)
 public class IntegrationServicesTest {
 
     // -------------------
@@ -41,7 +40,7 @@ public class IntegrationServicesTest {
     private WebhookEventProcess webhookEventProcess;
 
     @Test
-    void testWebhookEventProcess_WithMergeRequest_ShouldInvokeMergeRequestProcess() throws Exception {
+    public void testWebhookEventProcess_WithMergeRequest_ShouldInvokeMergeRequestProcess() throws Exception {
         // Arrange
         String payload = "{\"object_kind\":\"MERGE_REQUEST\"}";
         JsonNode mockNode = mock(JsonNode.class);
@@ -72,7 +71,7 @@ public class IntegrationServicesTest {
     private DeploymentProcess deploymentProcessTest;
 
     @Test
-    void testDeploymentProcess_WithDeploymentEvent_ShouldProcessDeploymentEvent() throws Exception {
+    public void testDeploymentProcess_WithDeploymentEvent_ShouldProcessDeploymentEvent() throws Exception {
         // Arrange
         String payload = "{\"object_kind\":\"DEPLOYMENT\"}";
         DeploymentEventRequest deploymentEvent = mock(DeploymentEventRequest.class);
@@ -101,7 +100,7 @@ public class IntegrationServicesTest {
     private MergeRequestProcess mergeRequestProcessTest;
 
     @Test
-    void testMergeRequestProcess_WithMergeRequestEvent_ShouldProcessMergeRequestEvent() throws Exception {
+    public void testMergeRequestProcess_WithMergeRequestEvent_ShouldProcessMergeRequestEvent() throws Exception {
         // Arrange
         String payload = "{\"object_kind\":\"MERGE_REQUEST\"}";
         MergeRequestEventRequest mergeRequestEvent = mock(MergeRequestEventRequest.class);
@@ -120,7 +119,7 @@ public class IntegrationServicesTest {
     // -------------------
 
     @Test
-    void testWebhookEventProcess_WithInvalidJson_ShouldLogError() throws Exception {
+    public void testWebhookEventProcess_WithInvalidJson_ShouldLogError() throws Exception {
         // Arrange
         String payload = "Invalid JSON";
 
@@ -134,7 +133,7 @@ public class IntegrationServicesTest {
     }
 
     @Test
-    void testDeploymentProcess_WithNonDeploymentEvent_ShouldLogUnhandledEvent() throws Exception {
+    public void testDeploymentProcess_WithNonDeploymentEvent_ShouldLogUnhandledEvent() throws Exception {
         // Arrange
         String payload = "{\"object_kind\":\"MERGE_REQUEST\"}";
         GitLabEventRequest nonDeploymentEvent = mock(GitLabEventRequest.class);
@@ -150,7 +149,7 @@ public class IntegrationServicesTest {
     }
 
     @Test
-    void testMergeRequestProcess_WithInvalidJson_ShouldThrowJsonProcessingException() throws Exception {
+    public void testMergeRequestProcess_WithInvalidJson_ShouldThrowJsonProcessingException() throws Exception {
         // Arrange
         String payload = "Invalid JSON";
 
