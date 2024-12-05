@@ -30,4 +30,19 @@
       { "from": "J", "to": "M" }
     ]
   }
+  {
+    "event_type": "deployment_event",
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "username": "johndoe"
+    },
+    "project": {
+      "id": 101,
+      "name": "Sample Project"
+    },
+    "environment": "production",
+    "status_changed_at": "2024-12-05T10:00:00Z",
+    "status": "success"
+  }
   
