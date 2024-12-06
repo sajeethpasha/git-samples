@@ -1,142 +1,101 @@
-# Documentation: `generateErpIntegrations` Method
+# HeroCarousel Module Testing Guide
 
-## Overview
-The `generateErpIntegrations` method is responsible for generating ERP integrations based on the provided request body, which contains details of ERP integration records. This process involves generating ERP integrations through an external API client, updating work orders based on the integration response, and handling different cases based on the response status. The method is implemented using reactive programming with Project Reactor's `Mono` and `Flux` classes.
+This document explains the feature file for testing the HeroCarousel module on the HomePage. The file is written in **Gherkin syntax**, commonly used with Behavior-Driven Development (BDD) frameworks like **Cucumber** or **Karate**.
 
-## Method Signature
-```java
-public Mono<ErpIntegrationsResponse> generateErpIntegrations(ErpIntegrationsRequestBody body)
-```
+## Structure Overview
+- **Feature**: Describes what is being tested (in this case, the "HeroCarousel module").
+- **Scenario Outline and Scenarios**: Each scenario represents a specific test case, with given conditions and expected outcomes.
+- **Background**: Shared setup steps for all scenarios, such as configuring headers or defining a request body.
+- **Steps (Given, When, Then)**: Plain language commands that correspond to executable code within the BDD framework.
 
-### Parameters
-- **`body`** (`ErpIntegrationsRequestBody`): The request body containing a list of ERP integrations to be created.
-
-### Return Type
-- **`Mono<ErpIntegrationsResponse>`**: A reactive stream that will eventually emit an `ErpIntegrationsResponse` or an error.
-
-## Process Flow
-1. **Extract ERP Integrations List**: Retrieve the list of ERP integration requests from the request body.
-   ```java
-   List<ErpIntegrationsCreateRequest> erpIntegrationsList = body.getErpIntegrations();
-   ```
-
-2. **Generate ERP Integrations**: Use the external `client` to generate the ERP integrations by invoking the `generateErpIntegrations` method, passing the extracted list.
-   ```java
-   return client.generateErpIntegrations(erpIntegrationsList)
-   ```
-
-3. **Logging and Error Handling**:
-   - Log a success message upon successful generation.
-   - Log an error message if the process fails.
-   ```java
-   .doOnSuccess(response -> logger.info("ERP integrations generated successfully"))
-   .doOnError(error -> logger.error("Error generating ERP integrations", error))
-   ```
-
-4. **Update Work Orders**:
-   - For each integration in the original request list, find the corresponding integration in the response.
-   - If a matching integration is found, create a `WorkOrderUpdateRequest` to update the work order with new information.
-   - Invoke `updateWorkOrder` to update the relevant work order using the client.
-   - Log success or error messages accordingly.
-   ```java
-   .flatMap(erpIntegrationsResponse -> Flux.fromIterable(erpIntegrationsList)
-           .flatMap(integration -> {
-               Optional<ErpIntegration> optionalErpIntegration = erpIntegrationsResponse.getErpIntegrations().stream()
-                       .filter(erpIntegration -> erpIntegration.getWorkOrderId().equals(integration.getWorkOrderId()))
-                       .findFirst();
-
-               if (optionalErpIntegration.isPresent()) {
-                   WorkOrderUpdateRequest workOrderUpdateRequest = WorkOrderUpdateRequest.builder()
-                           .requestId(requestId)
-                           .batchValue(integration.getValue())
-                           .build();
-                   return updateWorkOrder(workOrderUpdateRequest, workOrderId)
-                           .doOnSuccess(response -> logger.info("Work order updated successfully for workOrderId: " + workOrderId))
-                           .doOnError(error -> logger.error("Error updating work order for workOrderId: " + workOrderId, error));
-               } else {
-                   logger.info("No matching integration found for work order number: {}", integration.getOrderNumber());
-                   return Mono.error(new ErpIntegrationsException("No matching integration found for work order number " + integration.getOrderNumber()));
-               }
-           }).then(Mono.just(erpIntegrationsResponse)))
-   ```
-
-5. **Top-Level Error Handling**: Log any errors that occur during the entire ERP integration process.
-   ```java
-   .doOnError(exception -> logger.error("Error creating ERP integration {}", exception.getMessage()));
-   ```
-
-## Supporting Methods
-
-### `generateErpIntegrationsCurlCommand`
-This private method generates a cURL command for creating ERP integrations.
-
-**Method Signature**:
-```java
-private String generateErpIntegrationsCurlCommand(List<ErpIntegrationsCreateRequest> body)
-```
-
-- **Parameters**: `List<ErpIntegrationsCreateRequest>`: List of ERP integration requests.
-- **Return Type**: `String` containing the generated cURL command.
-
-The method constructs the cURL command using the base URL, Azure token, and JSON representation of the request body.
-
-### `generateErpIntegrations`
-This method sends a POST request to the `/erp-integrations` endpoint using the provided ERP integration requests.
-
-**Method Signature**:
-```java
-public Mono<ErpIntegrationsResponse> generateErpIntegrations(List<ErpIntegrationsCreateRequest> body)
-```
-
-- **Parameters**: `List<ErpIntegrationsCreateRequest>`: List of ERP integration requests to be sent.
-- **Return Type**: `Mono<ErpIntegrationsResponse>` containing the response from the ERP service.
-
-### `updateWorkOrder`
-This method updates a work order based on the provided `WorkOrderUpdateRequest`.
-
-**Method Signature**:
-```java
-public Mono<WorkOrder> updateWorkOrder(WorkOrderUpdateRequest workOrderUpdateRequest, String workOrderId)
-```
-
-- **Parameters**:
-  - `workOrderUpdateRequest` (`WorkOrderUpdateRequest`): Request object containing update details for the work order.
-  - `workOrderId` (`String`): The identifier for the work order to be updated.
-- **Return Type**: `Mono<WorkOrder>` containing the updated work order details.
-
-## Error Handling
-The `generateErpIntegrations` method handles different types of errors:
-1. **ERP Integration Generation Error**: Logged with the message "Error generating ERP integrations".
-2. **Work Order Update Error**: Logged for specific work order IDs with messages like "Error updating work order for workOrderId".
-3. **No Matching Integration Found**: If no corresponding integration is found in the response, an error is returned with the message "No matching integration found for work order number".
-4. **Top-Level Error**: Any error during the entire process is logged with "Error creating ERP integration".
-
-## Logging
-The method logs different stages of execution to aid in troubleshooting and tracking:
-- Successful generation of ERP integrations.
-- Errors during ERP integration generation.
-- Successful updates to work orders.
-- Errors during work order updates.
-- Missing integrations for specific work orders.
-
-## cURL Commands
-Both `generateErpIntegrations` and `updateWorkOrder` have methods to generate corresponding cURL commands, useful for debugging or testing purposes.
-
-- Example cURL command for generating ERP integrations:
+## Key Components
+### Background
+This section contains shared setup steps that apply to all scenarios:
+- **Configure Headers**:
+  ```gherkin
+  * configure headers = read('resources/feature/headers/featureHeaders.json')
   ```
-  curl -X POST 'https://example.com/erp-integrations' \
-       -H 'Content-Type: application/json' \
-       -H 'Authorization: Bearer <AzureToken>' \
-       -d '<RequestBody>'
+  Configures the request headers from a JSON file (likely to include authorization tokens or content type settings).
+
+- **Define Request Body**:
+  ```gherkin
+  * def body = read('resources/feature/requestBody/featureCarousel_request.json')
   ```
-- Example cURL command for updating a work order:
-  ```
-  curl -X PATCH 'https://example.com/work-orders/{workOrderId}' \
-       -H 'Content-Type: application/json' \
-       -H 'Authorization: Bearer <AzureToken>' \
-       -d '<WorkOrderUpdateRequest>'
-  ```
+  Defines the request body by loading a JSON template for the HeroCarousel API request.
+
+### Scenario Categories
+- **Positive Scenarios**: Tests for validating successful responses (e.g., `status 200`) or specific conditions like non-empty data.
+- **Negative Scenarios**: Tests to validate error handling when the API receives invalid or incomplete input.
+
+## Steps in Detail
+### Positive Scenario: Response Follows Contract
+```gherkin
+Scenario: 200 should be returned when the structure of the response follows the contract
+    Given url baseUrl + apiUrl
+    And request body
+    When method POST
+    Then print response
+    And status 200
+    And match response.data | contains 'jsonObject'
+    And match response.data.contentLayout | contains {...}
+```
+1. **Setup**:
+   - Constructs the full API URL by concatenating the `baseUrl` with a specific `apiUrl`.
+   - Indicates that the defined request body (`body`) will be sent.
+2. **Execution**:
+   - Executes an HTTP `POST` request.
+3. **Validation**:
+   - Prints the API response.
+   - Asserts that the response status is `200`.
+   - Validates the response structure with `match` statements to ensure compliance with the expected data contract.
+
+### Positive Scenario: Empty Products List
+```gherkin
+Scenario: An empty list of products should be returned when valid cid is provided and no recommendations are received from Algonomy
+    Given url baseUrl + apiUrl
+    And request body
+    * body.modules.configs.home_page_members = ''
+    When method POST
+    Then status 200
+    Then response.itemsCarousel.products == []
+```
+This scenario tests behavior when valid input returns an empty products list:
+- Modifies `body.modules.configs.home_page_members` to simulate a condition where no recommendations are requested.
+- Validates that `products` is either an empty list (`[]`).
+
+### Negative Scenario: Empty Modules
+```gherkin
+Scenario: An empty list of modules should be returned when invalid cid is provided in the request
+    Given url baseUrl + apiUrl
+    When method POST
+    Then status 200
+    Then print response
+    Then response.data.contentLayout.modules == []
+```
+This tests the API response when invalid or incomplete input is provided:
+- Sets `modules` in the request body to `null`.
+- Ensures that the API returns `400` status, indicating a client error.
+- Checks the error message for clarity.
+
+### Other Negative Scenarios
+Similar patterns test different failure cases:
+- **Missing Fields like `zone`, `moduleType`, `moduleId`, or `configs`**:
+  - Set specific fields in the request to `null`.
+  - Validate that the API returns `400` with appropriate error messages.
+
+- **Malformed Request**:
+  - Send an invalid or empty request body.
+  - Validate that the error message indicates a parsing issue.
+
+## Purpose of This File
+The purpose of this feature file is to **test the HeroCarousel module’s API** under various scenarios:
+1. **Behavior Validation**: Ensures the application behaves as expected when interacting with the HeroCarousel API.
+2. **Error Handling Verification**: Confirms that the API provides meaningful error messages when invalid data is sent.
+3. **Contract Testing**: Checks that the API response conforms to the specified schema.
+
+## Framework
+This feature file is likely written for the **Karate testing framework**, based on the syntax used for JSON manipulation, `match` statements, and variable definitions. Karate is widely used for API testing due to its expressive DSL.
 
 ## Summary
-The `generateErpIntegrations` method provides a robust mechanism for handling ERP integrations and subsequent work order updates. It employs reactive programming techniques to efficiently handle multiple asynchronous operations, ensuring each step of the process is logged and any errors are appropriately managed. The method facilitates traceability through detailed logging, and provides useful cURL commands to assist with manual testing and debugging.
+This feature file provides a structured way to test the functionality and resilience of the HeroCarousel API. It automates both functional testing (successful API responses) and error testing (handling invalid inputs). This ensures the **reliability**, **adherence to data contracts**, and **robustness** of the API.
 
