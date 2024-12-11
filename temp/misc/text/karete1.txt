@@ -1,0 +1,98 @@
+Feature: Validate API Response Structure for Content Page
+
+  @positive
+  Scenario: Validate response structure with a correct module in the request
+    Given url baseUrl + apiUrl
+    And request body
+    When method POST
+    * print response
+
+    Then status 200
+
+    # Validate top-level fields
+    And match response contains {
+      errorDetails: '#array',
+      features: null,
+      reqId: '#string',
+      pageOffset: '#number',
+      inflateContent: '#boolean',
+      modules: '#array',
+      styles: '#array'
+    }
+
+    # Validate modules array length
+    And match response.modules == '#[1]'
+
+    # Validate first module fields
+    And match response.modules[0] contains {
+      zone: 'zone6',
+      moduleType: 'contentTileCollection',
+      moduleId: '#string',
+      configs: '#object',
+      moduleResponse: '#object',
+      subType: null,
+      athenaOverrides: 'true'
+    }
+
+    # Validate module's configs object
+    And match response.modules[0].configs contains {
+      batchSize: 48,
+      pageOffset: 0,
+      totalPages: 1,
+      displayMode: 'THREE_BY_TWO_GRID',
+      products: '#array',
+      tileOptions: '#object',
+      title: 'Product Tile Collection Title',
+      totalCountOfProducts: 10,
+      itemsSelection: '#string',
+      p13nStrategy: 'home_page.image_0',
+      enabledSponsored: 'True'
+    }
+
+    # Validate tileOptions within configs
+    And match response.modules[0].configs.tileOptions contains {
+      _typename: 'CLETemplateMGLASSMobileCommonTileOptions',
+      addToCart: 'False',
+      addToRegistry: 'False',
+      averageRatings: 'False',
+      fulfillmentBadging: 'False',
+      mediaRatings: 'False',
+      productFlags: 'False',
+      productLabels: 'False',
+      productEBTEligible: 'False',
+      productPrice: 'False',
+      productTitle: 'False',
+      displayStandardPrice: 'False',
+      displayWasPrice: 'False',
+      displayAveragePriceCondition: 'False',
+      displayPricePerUnit: 'False',
+      displayVariant: 'False',
+      addToCartButtonStyle: 'primary',
+      productBrand: 'False',
+      isImageOnlyEnabled: true
+    }
+
+    # Validate first product in moduleResponse
+    And match response.modules[0].moduleResponse.products[0] contains {
+      id: '#string',
+      usItemId: '#string',
+      offerId: '#string',
+      sellerId: '#string',
+      availabilityStatus: 'IN_STOCK',
+      availableQuantity: '#number',
+      imageUrl: '#string',
+      classType: 'REGULAR',
+      p13nData: '#object',
+      showAtc: true,
+      showSubscribe: false,
+      showOptions: false,
+      productClassType: 'REGULAR'
+    }
+
+    # Validate fulfillmentSummary details
+    And match response.modules[0].moduleResponse.products[0].fulfillmentSummary == '#array'
+    And match response.modules[0].moduleResponse.products[0].fulfillmentSummary[0] contains {
+      fulfillment: 'DELIVERY',
+      storeId: '#string',
+      fulfillmentMethods: '#array'
+    }
