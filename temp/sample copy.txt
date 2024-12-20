@@ -1,0 +1,55 @@
+          +--------------------+
+                           |       Start        |
+                           +--------------------+
+                                    |
+                                    v
+                    +-----------------------------+
+                    |   1. List Work Orders      |
+                    | Retrieve list based on     |
+                    | search criteria & display. |
+                    +-----------------------------+
+                                    |
+                                    v
+                +--------------------------------------+
+                | 2. View Reservations by Work Order |
+                | User selects a work order.         |
+                +--------------------------------------+
+                                    |
+                     +-------------------------+
+                     |  Check Reservations?   |
+                     +-------------------------+
+                        |                |
+                    +----+             +----+
+                    | Yes |             | No |
+                    +----+             +----+
+                      |                   |
+       +--------------------------------------+        +------------------------------+
+       | Show reservation details.           |        | Display "No reservations    |
+       | Proceed to inventory fetch.         |        | found" message.             |
+       +--------------------------------------+        +------------------------------+
+                                  |
+                                  v
+                  +----------------------------------+
+                  | 3. Fetch Inventory Details      |
+                  | Update stock, reserved, and     |
+                  | available quantities.            |
+                  +----------------------------------+
+                                  |
+                                  v
+             +------------------------------------------+
+             | 4. Check Material Reservations          |
+             | Verify reservations, update subinventory|
+             | locator, lot number, and reservation ID.|
+             +------------------------------------------+
+                                  |
+                                  v
+                  +----------------------------------+
+                  | 5. Reservation Update Process   |
+                  | Update work order details if    |
+                  | necessary, send confirmations.  |
+                  +----------------------------------+
+                                  |
+                                  v
+                           +--------------------+
+                           |        End         |
+                           +--------------------+
