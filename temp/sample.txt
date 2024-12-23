@@ -1,13 +1,28 @@
-import javax.validation.constraints.Pattern;
+import javax.validation.Constraint;
+import javax.validation.Payload;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@GetMapping("/rework-items/{organization-code}")
-public ResponseEntity<Mono<List<InventoryOnhandDetails>>> getReworkItems(
-        @PathVariable("organization-code")
-        @Pattern(regexp = "^[a-zA-Z0-9-_]+$", message = "Invalid organization code") String organizationCode) {
-
-    return new ResponseEntity<>(
-            itemService.getReworkItemsOnhandDetails(organizationCode)
-                    .doOnNext(response -> log.info("Final response of getReworkItems {}", response)),
-            HttpStatus.OK
-    );
+@Constraint(validatedBy = OrganizationCodeValidator.class)
+@Target({ElementType.PARAMETER, ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ValidOrganizationCode {
+    String message() default "Invalid organization code";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
 }
+
+---------
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
+
+public class OrganizationCodeValidator implements ConstraintValidator<ValidOrganizationCode, String> {
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        return value != null && value.matches("^[a-zA-Z0-9-_]+$");
+    }
+}
+
+
