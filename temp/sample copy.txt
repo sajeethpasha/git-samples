@@ -1,13 +1,10 @@
-public Mono<List<InventoryOnhandDetails>> getReworkItemsOnhandDetails(String organizationCode) {
-    // Step 1: Validate the organizationCode
-    if (organizationCode == null || organizationCode.isBlank() || !organizationCode.matches("^[a-zA-Z0-9_-]+$")) {
-        return Mono.error(new IllegalArgumentException("Invalid organization code"));
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+
+public class OrganizationCodeValidator implements ConstraintValidator<ValidOrganizationCode, String> {
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        return value != null && !value.trim().isEmpty() && value.trim().matches("^[a-zA-Z0-9_-]+$");
     }
-
-    // Step 2: Sanitize the organizationCode
-    organizationCode = organizationCode.trim();
-
-    // Step 3: Proceed with the sanitized and validated organizationCode
-    return itemRepository.findReworkItems(organizationCode);
 }
-a
