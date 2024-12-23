@@ -1,15 +1,13 @@
-import jakarta.validation.constraints.Pattern;
+public Mono<List<InventoryOnhandDetails>> getReworkItemsOnhandDetails(String organizationCode) {
+    // Step 1: Validate the organizationCode
+    if (organizationCode == null || organizationCode.isBlank() || !organizationCode.matches("^[a-zA-Z0-9_-]+$")) {
+        return Mono.error(new IllegalArgumentException("Invalid organization code"));
+    }
 
-@GetMapping("/rework-items/{organization-code}")
-public ResponseEntity<Mono<List<InventoryOnhandDetails>>> getReworkItems(
-    @PathVariable("organization-code") 
-    @Pattern(regexp = "[a-zA-Z0-9_-]+", message = "Invalid organization code format") 
-    String organizationCode
-) {
-    log.info("Fetching rework items for organization: {}", organizationCode);
+    // Step 2: Sanitize the organizationCode
+    organizationCode = organizationCode.trim();
 
-    return new ResponseEntity<>(
-        itemService.getReworkItemsOnhandDetails(organizationCode),
-        HttpStatus.OK
-    );
+    // Step 3: Proceed with the sanitized and validated organizationCode
+    return itemRepository.findReworkItems(organizationCode);
 }
+a
