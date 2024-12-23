@@ -1,28 +1,12 @@
-import javax.validation.Constraint;
-import javax.validation.Payload;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Constraint(validatedBy = OrganizationCodeValidator.class)
-@Target({ElementType.PARAMETER, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ValidOrganizationCode {
-    String message() default "Invalid organization code";
-    Class<?>[] groups() default {};
-    Class<? extends Payload>[] payload() default {};
-}
-
----------
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-
-public class OrganizationCodeValidator implements ConstraintValidator<ValidOrganizationCode, String> {
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        return value != null && value.matches("^[a-zA-Z0-9-_]+$");
+public Mono<List<InventoryOnhandDetails>> getReworkItemsOnhandDetails(String organizationCode) {
+    // Step 1: Validate the organizationCode
+    if (organizationCode == null || organizationCode.isBlank() || !organizationCode.matches("^[a-zA-Z0-9_-]+$")) {
+        return Mono.error(new IllegalArgumentException("Invalid organization code"));
     }
+
+    // Step 2: Sanitize the organizationCode
+    organizationCode = organizationCode.trim();
+
+    // Step 3: Proceed with the sanitized and validated organizationCode
+    return itemRepository.findReworkItems(organizationCode);
 }
-
-
