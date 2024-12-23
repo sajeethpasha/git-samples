@@ -1,10 +1,13 @@
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
-public class OrganizationCodeValidator implements ConstraintValidator<ValidOrganizationCode, String> {
+@ControllerAdvice
+public class SanitizationAdvice {
 
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        return value != null && !value.trim().isEmpty() && value.trim().matches("^[a-zA-Z0-9_-]+$");
+    @ModelAttribute
+    public void sanitizeInput(@PathVariable("organization-code") String organizationCode) {
+        if (organizationCode != null) {
+            organizationCode = organizationCode.trim(); // Sanitize input globally
+        }
     }
 }
