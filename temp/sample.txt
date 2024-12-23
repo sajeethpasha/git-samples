@@ -1,23 +1,13 @@
-@GetMapping("/conversion/{item-id}/LT/{uom-code}")
-public ResponseEntity<Mono<Double>> getConversionToLiter(
-        @PathVariable("item-id") Long itemId,
-        @PathVariable("uom-code") String uomCode) {
+import javax.validation.constraints.Pattern;
 
-    if (!isValidUomCode(uomCode)) {
-        return ResponseEntity.badRequest().body(Mono.error(new IllegalArgumentException("Invalid UOM Code")));
-    }
+@GetMapping("/rework-items/{organization-code}")
+public ResponseEntity<Mono<List<InventoryOnhandDetails>>> getReworkItems(
+        @PathVariable("organization-code")
+        @Pattern(regexp = "^[a-zA-Z0-9-_]+$", message = "Invalid organization code") String organizationCode) {
 
-    return ResponseEntity.ok(
-        itemService.getConversionToLiter(itemId, sanitize(uomCode))
+    return new ResponseEntity<>(
+            itemService.getReworkItemsOnhandDetails(organizationCode)
+                    .doOnNext(response -> log.info("Final response of getReworkItems {}", response)),
+            HttpStatus.OK
     );
-}
-
-// Example validation method
-private boolean isValidUomCode(String uomCode) {
-    return uomCode != null && uomCode.matches("[A-Za-z0-9_\\-]+");
-}
-
-// Example sanitization method
-private String sanitize(String input) {
-    return input.replaceAll("[^A-Za-z0-9_\\-]", "");
 }
