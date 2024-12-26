@@ -1,13 +1,1 @@
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ModelAttribute;
-
-@ControllerAdvice
-public class SanitizationAdvice {
-
-    @ModelAttribute
-    public void sanitizeInput(@PathVariable("organization-code") String organizationCode) {
-        if (organizationCode != null) {
-            organizationCode = organizationCode.trim(); // Sanitize input globally
-        }
-    }
-}
+sonar.search.javaAdditionalOpts=-Des.distribution.type=tar
