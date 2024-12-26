@@ -1,12 +1,25 @@
-public Mono<List<InventoryOnhandDetails>> getReworkItemsOnhandDetails(String organizationCode) {
-    // Step 1: Validate the organizationCode
-    if (organizationCode == null || organizationCode.isBlank() || !organizationCode.matches("^[a-zA-Z0-9_-]+$")) {
-        return Mono.error(new IllegalArgumentException("Invalid organization code"));
+/**
+ * Sanitizes the log by ensuring null-safe handling and logging all fields.
+ * Includes all fields from InventoryReservationUpdateRequest without masking.
+ */
+private String sanitizeForLog(InventoryReservationUpdateRequest request) {
+    if (request == null) {
+        return "Request is null";
     }
 
-    // Step 2: Sanitize the organizationCode
-    organizationCode = organizationCode.trim();
-
-    // Step 3: Proceed with the sanitized and validated organizationCode
-    return itemRepository.findReworkItems(organizationCode);
+    return String.format(
+        "lotNumber=%s, subinventoryCode=%s, locatorId=%s, reservationQuantity=%s, reservationId=%s, itemNumber=%s, organizationCode=%s, demandSourceLineId=%s, demandSourceHeaderId=%s, dateReceived=%s, expirationDate=%s, inventoryType=%s",
+        request.getLotNumber() != null ? request.getLotNumber() : "N/A",
+        request.getSubinventoryCode() != null ? request.getSubinventoryCode() : "N/A",
+        request.getLocatorId() != null ? request.getLocatorId() : "N/A",
+        request.getReservationQuantity() != null ? request.getReservationQuantity() : "N/A",
+        request.getReservationId() != null ? request.getReservationId() : "N/A",
+        request.getItemNumber() != null ? request.getItemNumber() : "N/A",
+        request.getOrganizationCode() != null ? request.getOrganizationCode() : "N/A",
+        request.getDemandSourceLineId() != null ? request.getDemandSourceLineId() : "N/A",
+        request.getDemandSourceHeaderId() != null ? request.getDemandSourceHeaderId() : "N/A",
+        request.getDateReceived() != null ? request.getDateReceived() : "N/A",
+        request.getExpirationDate() != null ? request.getExpirationDate() : "N/A",
+        request.getInventoryType() != null ? request.getInventoryType() : "N/A"
+    );
 }
