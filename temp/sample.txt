@@ -1,1 +1,4 @@
-sonar.web.javaAdditionalOpts=-Djava.security.manager=allow
+  // Validate inputs
+    if (limit == null || limit < 0 || offset == null || offset < 0 || lookUpType == null || lookUpType.isEmpty()) {
+        throw new IllegalArgumentException("Invalid input parameters");
+    }
