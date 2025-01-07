@@ -7,30 +7,33 @@ import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
-public class UOMCodeSanitizationAspect {
+public class ParameterSanitizationAspect {
 
-    private static final Logger logger = LoggerFactory.getLogger(UOMCodeSanitizationAspect.class);
+    private static final Logger logger = LoggerFactory.getLogger(ParameterSanitizationAspect.class);
 
-    @Around("execution(* com.sherwin.edps.batchmgmtbff.services.*.*(..)) && args(.., uomCode, ..)")
-    public Object sanitizeUOMCode(ProceedingJoinPoint joinPoint, String uomCode) throws Throwable {
-        // Apply sanitization
-        String sanitizedUOMCode = sanitize(uomCode);
-        logger.info("Sanitized uomCode: {}", sanitizedUOMCode);
-
-        // Replace the original uomCode argument with the sanitized value
+    @Around("execution(* com.sherwin.edps.batchmgmtbff.services.*.*(..))")
+    public Object sanitizeParameters(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
+
+        // Sanitize all String parameters
         for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof String && args[i].equals(uomCode)) {
-                args[i] = sanitizedUOMCode;
+            if (args[i] instanceof String) {
+                String originalValue = (String) args[i];
+                String sanitizedValue = sanitize(originalValue);
+                logger.info("Sanitized parameter: {} -> {}", originalValue, sanitizedValue);
+                args[i] = sanitizedValue;
             }
         }
 
-        // Proceed with the sanitized arguments
+        // Proceed with sanitized arguments
         return joinPoint.proceed(args);
     }
 
     // Sanitization logic
     public static String sanitize(String input) {
-        return input.replaceAll("[^A-Za-z0-9_\\-]", "");
+        if (input == null) {
+            return null;
+        }
+        return input.replaceAll("[^A-Za-z0-9_\\-]", ""); // Only allow alphanumeric, underscore, and hyphen
     }
 }
