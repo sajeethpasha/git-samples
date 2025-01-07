@@ -12,28 +12,43 @@ public class ParameterSanitizationAspect {
     private static final Logger logger = LoggerFactory.getLogger(ParameterSanitizationAspect.class);
 
     @Around("execution(* com.sherwin.edps.batchmgmtbff.services.*.*(..))")
-    public Object sanitizeParameters(ProceedingJoinPoint joinPoint) throws Throwable {
+    public Object sanitizeAndValidateParameters(ProceedingJoinPoint joinPoint) throws Throwable {
         Object[] args = joinPoint.getArgs();
 
-        // Sanitize all String parameters
+        // Process arguments
         for (int i = 0; i < args.length; i++) {
             if (args[i] instanceof String) {
+                // Sanitize String
                 String originalValue = (String) args[i];
-                String sanitizedValue = sanitize(originalValue);
-                logger.info("Sanitized parameter: {} -> {}", originalValue, sanitizedValue);
+                String sanitizedValue = sanitizeString(originalValue);
+                logger.info("Sanitized String parameter: {} -> {}", originalValue, sanitizedValue);
                 args[i] = sanitizedValue;
+            } else if (args[i] instanceof Integer) {
+                // Validate Integer (non-negative)
+                Integer originalValue = (Integer) args[i];
+                if (originalValue < 0) {
+                    throw new IllegalArgumentException("Negative value not allowed for Integer: " + originalValue);
+                }
+                logger.info("Validated Integer parameter: {}", originalValue);
+            } else if (args[i] instanceof Long) {
+                // Validate Long (non-negative)
+                Long originalValue = (Long) args[i];
+                if (originalValue < 0L) {
+                    throw new IllegalArgumentException("Negative value not allowed for Long: " + originalValue);
+                }
+                logger.info("Validated Long parameter: {}", originalValue);
             }
         }
 
-        // Proceed with sanitized arguments
+        // Proceed with sanitized/validated arguments
         return joinPoint.proceed(args);
     }
 
-    // Sanitization logic
-    public static String sanitize(String input) {
+    // Sanitization for String
+    public static String sanitizeString(String input) {
         if (input == null) {
             return null;
         }
-        return input.replaceAll("[^A-Za-z0-9_\\-]", ""); // Only allow alphanumeric, underscore, and hyphen
+        return input.replaceAll("[^A-Za-z0-9_\\-]", ""); // Allow alphanumeric, underscore, and hyphen
     }
 }
