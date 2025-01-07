@@ -6,19 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * Aspect for validating UOM Code in service methods.
- */
 @Aspect
 @Component
 public class UOMCodeAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(UOMCodeAspect.class);
 
-    /**
-     * Validate uomCode in methods under services package.
-     */
-    @Before("execution(* com.sherwin.edps.batchmgmtbff.services..*.*(..)) && args(.., uomCode, ..)")
+    @Before("execution(* com.sherwin.edps.batchmgmtbff.services.*.*(..)) && args(.., uomCode, ..)")
     public void validateUOMCode(String uomCode) {
         if (uomCode == null || uomCode.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid uomCode: cannot be null or empty");
