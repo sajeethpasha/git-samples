@@ -1,60 +1,51 @@
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Around;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import org.aspectj.lang.reflect.MethodSignature;
 
-@Aspect
-@Component
-public class ParameterSanitizationAspect {
+@Around("execution(* com.sherwin.edps.batchmgmtbff.services..*(..)) || " +
+        "execution(* com.sherwin.edps.batchmgmtbff.controllers..*(..)) || " +
+        "execution(* com.sherwin.edps.batchmgmtbff.clients..*(..))")
+public Object sanitizeParameters(ProceedingJoinPoint joinPoint) throws Throwable {
+    Object[] args = joinPoint.getArgs();
+    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    Method method = signature.getMethod();
+    Parameter[] parameters = method.getParameters();
 
-    private static final Logger logger = LoggerFactory.getLogger(ParameterSanitizationAspect.class);
-
-    @Around("execution(* com.sherwin.edps.batchmgmtbff.services..*(..)) || " +
-            "execution(* com.sherwin.edps.batchmgmtbff.controllers..*(..)) || " +
-            "execution(* com.sherwin.edps.batchmgmtbff.clients..*(..))")
-    public Object sanitizeParameters(ProceedingJoinPoint joinPoint) throws Throwable {
-        Object[] args = joinPoint.getArgs();
-
-        for (int i = 0; i < args.length; i++) {
+    for (int i = 0; i < parameters.length; i++) {
+        if ("reservationIds".equals(parameters[i].getName())) {
+            // Apply specific logic for reservationIds
+            args[i] = sanitizeReservationIds((String) args[i]);
+        } else {
+            // General sanitization for other String arguments
             args[i] = processArgument(args[i]);
         }
-
-        return joinPoint.proceed(args);
     }
 
-    private Object processArgument(Object arg) {
-        if (arg instanceof String) {
-            return sanitizeString((String) arg);
-        } else if (arg instanceof Integer) {
-            validateInteger((Integer) arg);
-        } else if (arg instanceof Long) {
-            validateLong((Long) arg);
-        }
-        return arg;
-    }
+    return joinPoint.proceed(args);
+}
 
-    private String sanitizeString(String input) {
-        if (input == null) {
-            return null;
-        }
-        String sanitized = input.replaceAll("[^A-Za-z0-9_\\-]", ""); // Allow alphanumeric, underscore, and hyphen
-        logger.info("Sanitized String: {}", sanitized);
-        return sanitized;
+private String sanitizeReservationIds(String reservationIds) {
+    if (reservationIds == null) {
+        return null;
     }
+    // Allow only digits and commas
+    return reservationIds.replaceAll("[^0-9,]", "");
+}
 
-    private void validateInteger(Integer value) {
-        if (value != null && value < 0) {
-            throw new IllegalArgumentException("Negative value not allowed for Integer: " + value);
-        }
-        logger.info("Validated Integer: {}", value);
+private Object processArgument(Object arg) {
+    if (arg instanceof String) {
+        return sanitizeString(arg);
+    } else if (arg instanceof Integer) {
+        validateInteger((Integer) arg);
+    } else if (arg instanceof Long) {
+        validateLong((Long) arg);
     }
+    return arg;
+}
 
-    private void validateLong(Long value) {
-        if (value != null && value < 0) {
-            throw new IllegalArgumentException("Negative value not allowed for Long: " + value);
-        }
-        logger.info("Validated Long: {}", value);
+private String sanitizeString(Object input) {
+    if (input == null) {
+        return null;
     }
+    return input.toString().replaceAll("[^A-Za-z0-9_\\-]", ""); // General sanitization
 }
