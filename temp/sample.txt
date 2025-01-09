@@ -1,51 +1,56 @@
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.regex.Pattern;
 
-@Around("execution(* com.sherwin.edps.batchmgmtbff.services..*(..)) || " +
-        "execution(* com.sherwin.edps.batchmgmtbff.controllers..*(..)) || " +
-        "execution(* com.sherwin.edps.batchmgmtbff.clients..*(..))")
-public Object sanitizeParameters(ProceedingJoinPoint joinPoint) throws Throwable {
-    Object[] args = joinPoint.getArgs();
-    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    Method method = signature.getMethod();
-    Parameter[] parameters = method.getParameters();
+@Component
+public class InputValidationInterceptor implements HandlerInterceptor {
 
-    for (int i = 0; i < parameters.length; i++) {
-        if ("reservationIds".equals(parameters[i].getName())) {
-            // Apply specific logic for reservationIds
-            args[i] = sanitizeReservationIds((String) args[i]);
-        } else {
-            // General sanitization for other String arguments
-            args[i] = processArgument(args[i]);
+    // Regex to allow only alphanumeric characters, dashes, and underscores
+    private static final Pattern SAFE_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]*$");
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // Validate query parameters (you can add more as needed)
+        String organizationCode = request.getParameter("organizationCode");
+        String itemNumber = request.getParameter("itemNumber");
+        String workOrderNumber = request.getParameter("workOrderNumber");
+
+        // If any input is invalid, block the request
+        if (!isValid(organizationCode) || !isValid(itemNumber) || !isValid(workOrderNumber)) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("Invalid input parameters detected");
+            return false; // Reject the request
         }
+
+        return true; // Allow the request to proceed
     }
 
-    return joinPoint.proceed(args);
+    // Utility method to validate input using the SAFE_PATTERN regex
+    private boolean isValid(String input) {
+        return input == null || SAFE_PATTERN.matcher(input).matches();
+    }
 }
 
-private String sanitizeReservationIds(String reservationIds) {
-    if (reservationIds == null) {
-        return null;
+-------
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private InputValidationInterceptor inputValidationInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        // Register the interceptor for all endpoints
+        registry.addInterceptor(inputValidationInterceptor);
     }
-    // Allow only digits and commas
-    return reservationIds.replaceAll("[^0-9,]", "");
 }
 
-private Object processArgument(Object arg) {
-    if (arg instanceof String) {
-        return sanitizeString(arg);
-    } else if (arg instanceof Integer) {
-        validateInteger((Integer) arg);
-    } else if (arg instanceof Long) {
-        validateLong((Long) arg);
-    }
-    return arg;
-}
-
-private String sanitizeString(Object input) {
-    if (input == null) {
-        return null;
-    }
-    return input.toString().replaceAll("[^A-Za-z0-9_\\-]", ""); // General sanitization
-}
