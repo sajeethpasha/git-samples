@@ -1,66 +1,109 @@
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerInterceptor;
+package com.example.demo.interceptor;
+
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @Component
-public class InputValidationInterceptor implements HandlerInterceptor {
+public class InputSanitizationFilter implements Filter {
 
     // Regex to allow only alphanumeric characters, dashes, and underscores
     private static final Pattern SAFE_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]*$");
 
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // Validate query parameters (you can add more as needed)
-        String organizationCode = request.getParameter("organizationCode");
-        String itemNumber = request.getParameter("itemNumber");
-        String workOrderNumber = request.getParameter("workOrderNumber");
+    private static final String[] SENSITIVE_PARAMETERS = { "organizationCode", "itemNumber", "workOrderNumber" };
 
-        // If any input is invalid, block the request
-        if (!isValid(organizationCode) || !isValid(itemNumber) || !isValid(workOrderNumber)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("Invalid input parameters detected");
-            return false; // Reject the request
+    @Override
+    public void doFilter(jakarta.servlet.ServletRequest request, jakarta.servlet.ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+        if (request instanceof HttpServletRequest) {
+            HttpServletRequest httpRequest = (HttpServletRequest) request;
+
+            // Wrap the request to sanitize input parameters
+            HttpServletRequest wrappedRequest = new SanitizedHttpServletRequest(httpRequest);
+            chain.doFilter(wrappedRequest, response);
+        } else {
+            chain.doFilter(request, response);
+        }
+    }
+
+    // Custom HttpServletRequestWrapper to sanitize request parameters
+    private static class SanitizedHttpServletRequest extends HttpServletRequestWrapper {
+
+        public SanitizedHttpServletRequest(HttpServletRequest request) {
+            super(request);
         }
 
-        return true; // Allow the request to proceed
-    }
+        @Override
+        public String getParameter(String name) {
+            // Use the common sanitize logic
+            String[] values = getParameterValues(name);
+            return values != null && values.length > 0 ? values[0] : null;
+        }
 
-    // Utility method to validate input using the SAFE_PATTERN regex
-    private boolean isValid(String input) {
-        return input == null || SAFE_PATTERN.matcher(input).matches();
+        @Override
+        public String[] getParameterValues(String name) {
+            String[] values = super.getParameterValues(name);
+            return isSensitiveParameter(name) ? sanitizeArray(values) : values;
+        }
+
+        @Override
+        public Map<String, String[]> getParameterMap() {
+            Map<String, String[]> sanitizedMap = new HashMap<>();
+            Map<String, String[]> originalMap = super.getParameterMap();
+
+            for (Map.Entry<String, String[]> entry : originalMap.entrySet()) {
+                String key = entry.getKey();
+                String[] values = entry.getValue();
+
+                // Sanitize specific parameters, leave others unchanged
+                sanitizedMap.put(key, isSensitiveParameter(key) ? sanitizeArray(values) : values);
+            }
+
+            return sanitizedMap;
+        }
+
+        // Check if the parameter is sensitive
+        private boolean isSensitiveParameter(String name) {
+            for (String sensitive : SENSITIVE_PARAMETERS) {
+                if (sensitive.equals(name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Sanitize a single parameter value
+        private String sanitize(String input) {
+            if (input == null) {
+                return null;
+            }
+            return input.replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll("\"", "&quot;")
+                    .replaceAll("'", "&#x27;")
+                    .replaceAll("&", "&amp;");
+        }
+
+        // Sanitize an array of parameter values
+        private String[] sanitizeArray(String[] values) {
+            if (values == null) {
+                return null;
+            }
+            String[] sanitizedValues = new String[values.length];
+            for (int i = 0; i < values.length; i++) {
+                sanitizedValues[i] = sanitize(values[i]);
+            }
+            return sanitizedValues;
+        }
     }
 }
-
--------
-
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-@Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    @Autowired
-    private InputValidationInterceptor inputValidationInterceptor;
-
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        // Register the interceptor for all endpoints
-        registry.addInterceptor(inputValidationInterceptor);
-    }
-}
-
-
-****************
-
-    <dependency>
-        <groupId>jakarta.servlet</groupId>
-        <artifactId>jakarta.servlet-api</artifactId>
-        <scope>provided</scope>
-    </dependency>
-</dependencies>
-
