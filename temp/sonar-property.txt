@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profile>
+    <name>Custom Security Profile</name>
+    <language>java</language>
+    <rules>
+        <!-- Example: Rule S5145 for Logging user-controlled data -->
+        <rule>
+            <key>S5145</key>
+            <parameters>
+                <parameter>
+                    <key>trustedAnnotations</key>
+                    <value>@Sanitized</value>
+                </parameter>
+            </parameters>
+        </rule>
+
+        <!-- Example: Rule S2076 for SQL Injection -->
+        <rule>
+            <key>S2076</key>
+            <parameters>
+                <parameter>
+                    <key>trustedAnnotations</key>
+                    <value>@Sanitized</value>
+                </parameter>
+            </parameters>
+        </rule>
+
+        <!-- Add more rules here if needed -->
+    </rules>
+</profile>
+
+
+
+
+----------------
