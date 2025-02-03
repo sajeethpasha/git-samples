@@ -1,98 +1,151 @@
-# Rework Items Retrieval Process
+# Manual Inventory Reservation Process
 
-## Overview
-The **Rework Items Retrieval** process is designed to provide management with up-to-date information on items that require reworking within the organization. This functionality ensures that **inventory levels are accurately monitored**, and necessary actions are taken promptly to address any discrepancies or issues related to inventory items.
+This document outlines the process for handling manual inventory reservations within the system, detailing the flow from the controller endpoint to the final response.
 
----
+## 1. Entry Point: Controller Endpoint
 
-## Process Flow
+- **Endpoint:** `POST /manual-reservation`
+- **Location:** Inventory Domain Controller
+- **Method:** `postManualInventoryReservation`
+- **Request Body:** An instance of `InventoryManualReservationRequest`
+- **Response:** A reactive `Mono` wrapped in a `ResponseEntity` with HTTP status `201 CREATED`
 
-### 1. Request Initiation
-- **Action:** A request is made to retrieve rework items for a specific organization.
-- **Endpoint:** `GET /rework-items/{organization-code}`
-- **Purpose:** To fetch a list of inventory items that are marked for rework within the specified organization.
+**Process:**
 
-### 2. Service Invocation
-- **Component:** `ItemService`
-- **Method:** `getReworkItemsOnHandDetails(organizationCode)`
-- **Functionality:**
-  - Aggregates inventory details from different sub-inventories.
-  - Filters and processes the data to identify rework items.
+1. The controller receives the manual reservation request.
+2. It calls the service layer method `createManualInventoryReservation(body)` from the item service.
+3. The controller logs the final response before returning it to the caller.
 
-### 3. Data Aggregation
-- **Sub-Inventory Codes:** `993, 998, 999`
-- **Process:**
-  - The service retrieves inventory details from the reporting service for each of the specified sub-inventory codes.
-  - Combines the data from these sub-inventories into a consolidated list.
+## 2. Service Layer: Creating the Manual Reservation
 
-### 4. Data Filtering and Transformation
-- **Filtering Criteria:**
-  - Excludes items with empty sub-inventory codes.
-  - Excludes items where the available quantity for transactions is not specified.
-- **Data Cleaning:**
-  - Removes any unnecessary spaces from locator information to ensure consistency.
-- **Logging:** Records the number of rework items identified after filtering for transparency and monitoring purposes.
+- **Method:** `createManualInventoryReservation`
+- **Location:** Item Service
+- **Input:** The complete request (`InventoryManualReservationRequest`)
 
-### 5. Detailed Inventory Retrieval
-- **Component:** `ReportingService`
-- **Method:** `getInventoryOnHandDetails`
-- **Purpose:**
-  - Fetches detailed information about each inventory item, including availability for transactions and reservations.
-  - Ensures that the inventory data is accurate and up-to-date.
+**Process:**
 
-### 6. Reservation Details Enhancement
-- **Additional Data Fetching:**
-  - For each inventory item, the service retrieves reservation-specific details.
-  - Updates the inventory item with available quantities for transactions and reservations based on the latest data.
-- **Error Handling:**
-  - If reservation data is unavailable, the system retains existing available quantities.
-  - Logs information regarding the availability of reservation data for each item.
+1. **Extract Reservation Details:**
+   - Retrieves `InventoryManualReservationCreateRequest` from the request body.
+2. **Determine Processing Path:**
+   - Checks the flag `transformWorkOrders` within the create request.
+   - If `TRUE`:
+     - Calls a method named `processAndValidateTransformWorkOrdersForHardReservation` to handle work order transformation reservations.
+   - If `FALSE`:
+     - Calls `processAndValidateProcessWorkOrdersForHardReservation` to handle the standard process.
 
-### 7. Response Construction
-- **Response Structure:** `ListReworkItemsResponse`
-- **HTTP Status Codes:**
-  - `200 OK`: Successfully retrieved rework items.
-  - `404 Not Found`: No rework items found for the specified organization.
-- **Logging:** Captures the final response details to aid in monitoring and troubleshooting.
+## 3. Validation and Processing Work Orders
 
-### 8. Error Management
-- **Exception Handling:**
-  - Captures and logs any errors encountered during the data retrieval and processing stages.
-  - Returns meaningful error messages to facilitate quick resolution.
-- **Fallback Mechanism:** Ensures that even in the event of partial failures, the system provides the best possible data to the end-users.
+- **Method:** `processAndValidateProcessWorkOrdersForHardReservation`
+- **Location:** Item Service
+- **Input:** The original request (`InventoryManualReservationRequest`) and the extracted create request
 
----
+**Process:**
 
-## Benefits
-- **Enhanced Visibility:** Provides management with clear insights into inventory items requiring rework, enabling informed decision-making.
-- **Operational Efficiency:** Streamlines the process of identifying and addressing inventory issues, reducing downtime and improving productivity.
-- **Data Accuracy:** Ensures that inventory data is reliable and up-to-date, minimizing the risk of errors in inventory management.
-- **Robust Error Handling:** Maintains system stability and provides actionable information in case of failures, ensuring smooth operations.
+1. **Retrieve Work Order Materials:**
+   - Calls `workOrderDomainClient.listWorkOrderMaterials` using the `demandSourceHeaderId` from the create request.
+   - This call reaches out to the work order domain (via HTTP GET) to retrieve a list of materials.
+2. **Filter for Matching Material:**
+   - The returned list is filtered for a `WorkOrderMaterial` that matches:
+     - `workOrderOperationId` equals `demandSourceLineId`
+     - `itemNumber` equals the item number from the create request.
+3. **Validate Reservation Quantity:**
+   - Logs the attempt to validate the reservation quantity.
+   - If a matching work order material exists, compares:
+     - Reservation Quantity vs. Available-to-Reserve Quantity
+   - **Error Condition:**
+     - If the reservation quantity exceeds the available quantity, the flow terminates with an `InventoryManualReservationCreationException`.
+4. **Proceed to Hard Reservation Processing:**
+   - If validation passes, the method calls `processHardReservation` to either update an existing reservation or create a new one.
 
----
+## 4. Processing the Hard Reservation
 
-## Conclusion
-The **Rework Items Retrieval** process is a critical component of inventory management, offering management a **reliable and efficient way** to monitor and address rework items. By leveraging **robust data aggregation, filtering, and error handling mechanisms**, the system ensures that **inventory levels are accurately maintained**, supporting the organization's operational goals.
+- **Method:** `processHardReservation`
+- **Location:** Item Service
+- **Input:** The original request and the create request
 
----
+**Decision Point:**
 
-## Diagram: Rework Items Retrieval Flow
+- **Existing Reservation (Update):**
+  - **Condition:** The create request contains a non-empty `reservationId` (indicating a soft reservation exists).
+  - **Action:**
+    - Logs the details (item number, sub-inventory code, locator ID, lot number) for updating.
+    - Invokes `updateManualReservation` to convert the soft reservation to a hard reservation.
+    - Error handling is added via a `doOnError` callback to log any issues during update.
+- **New Reservation (Create):**
+  - **Condition:** No existing `reservationId` is provided.
+  - **Action:**
+    - Logs that a new reservation is being created.
+    - Calls `createAndUpdateManualReservation` to create and then update the reservation.
+    - Also uses a `doOnError` callback for error logging.
+
+## 5. Creating and Updating a New Reservation
+
+- **Method:** `createAndUpdateManualReservation`
+- **Location:** Item Service
+
+**Process:**
+
+1. **Create the Manual Reservation:**
+   - Calls `client.createManualInventoryReservation(manualReservationCreateRequest)` on the inventory domain client.
+   - This sends a `POST` request to the `/manual-reservation` endpoint of the inventory domain.
+   - The client method logs a CURL command for debugging and returns a `Mono` of `InventoryManualReservationResponse` which includes the generated `reservationId`.
+2. **Update the Reservation to Hard Reservation:**
+   - Using the returned `reservationId`, it builds an `InventoryReservationUpdateRequest` (patch body) with key details:
+     - `lotNumber`
+     - `subinventoryCode`
+     - `locatorId`
+   - Calls `updateReservation(reservationId, patchBody)` to finalize the hard reservation.
+
+## 6. Updating the Reservation (PATCH Operation)
+
+- **Method:** `updateReservation`
+- **Location:** Inventory Domain Client
+
+**Process:**
+
+1. **Delegation to the Inventory Client:**
+   - Calls `updateInventoryReservation(reservationId, patchBody)` defined in the inventory client.
+2. **Inside `updateInventoryReservation`:**
+   - **HTTP PATCH Request:**
+     - Constructs the URL `/reservation/{reservationId}`.
+     - Sets the authorization header using the `AzureToken` from the context.
+     - Sets the request body with the update details.
+     - Accepts JSON responses.
+   - **Error Handling:**
+     - Uses `.onStatus` to intercept HTTP 4xx/5xx responses.
+     - Transforms error responses into an `InventoryDomainException`.
+   - **Mapping the Response:**
+     - On a successful response, maps the returned JSON into an `InventoryReservation` object.
+     - Logs the response.
+   - **Wrapping the Result:**
+     - Once the PATCH call succeeds, the response is wrapped into an `InventoryManualReservationResponse` and returned.
+
+## 7. Work Order Domain: Listing Work Order Materials
+
+- **Method:** `listWorkOrderMaterials`
+- **Location:** Work Order Domain Controller
+
+**Process:**
+
+1. Constructs a `GET` request to the endpoint:
+   - `http://localhost:8081/work-orders/{workOrderId}/materials?limit=500`
+2. Sets the authorization and accept headers.
+3. Logs a CURL command for reference.
+4. Retrieves a paged response and maps it to a list of `WorkOrderMaterial` objects.
+5. This data is used in the validation step (see Section 3).
+
+## 8. Final Outcome and Response
+
+- **Successful Flow:**
+  - If all validations pass and the hard reservation is either successfully updated or created, the final `InventoryManualReservationResponse` is sent back to the client with a `201` status.
+- **Error Flow:**
+  - If any error occurs (e.g., validation failure or HTTP error during PATCH/POST), the respective exception (such as `InventoryManualReservationCreationException`, `InventoryDomainException`, or `WorkOrderDomainException`) is thrown and logged.
+
+## Summary Diagram of the Flow
 
 ```mermaid
 graph TD
-    A[Start: Request Rework Items] --> B[Invoke ItemService]
-    B --> C[Fetch Inventory from Sub-Inventory 993]
-    B --> D[Fetch Inventory from Sub-Inventory 998]
-    B --> E[Fetch Inventory from Sub-Inventory 999]
-    C --> F[Aggregate Data]
-    D --> F
-    E --> F
-    F --> G[Filter and Clean Data]
-    G --> H[Enhance with Reservation Details]
-    H --> I{Data Available?}
-    I -->|Yes| J[Update Inventory Details]
-    I -->|No| K[Retain Existing Data]
-    J --> L[Construct Response]
-    K --> L
-    L --> M[Return Response to User]
-    M --> N[End]
+    A[POST /manual-reservation (Controller)] -->|Calls| B[ItemService.createManualInventoryReservation]
+    B -->|Extracts request and checks transformWorkOrders flag| C{transformWorkOrders flag}
+    C -->|False| D[processAndValidateProcessWorkOrdersForHardReservation]
+    
