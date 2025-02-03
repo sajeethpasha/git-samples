@@ -1,151 +1,197 @@
-# Manual Inventory Reservation Process
+Below is a detailed document that explains the complete flow for the manual inventory reservation process—from the initial REST endpoint call through the service logic and client calls—along with the method-calling sequence and validation steps.
 
-This document outlines the process for handling manual inventory reservations within the system, detailing the flow from the controller endpoint to the final response.
+---
 
-## 1. Entry Point: Controller Endpoint
+## 1. REST Endpoint – Controller Layer
 
-- **Endpoint:** `POST /manual-reservation`
-- **Location:** Inventory Domain Controller
-- **Method:** `postManualInventoryReservation`
-- **Request Body:** An instance of `InventoryManualReservationRequest`
-- **Response:** A reactive `Mono` wrapped in a `ResponseEntity` with HTTP status `201 CREATED`
+### Method: postManualInventoryReservation  
+- **Location:** *Inventory Domain Controller*  
+- **Endpoint:** `POST /manual-reservation`  
+- **Request Payload:** An instance of `InventoryManualReservationRequest`  
+- **Response:** A reactive `Mono<InventoryManualReservationResponse>` wrapped in a `ResponseEntity` with HTTP status **201 CREATED**
 
-**Process:**
+**What Happens:**  
+- The controller receives the request and logs the incoming data.  
+- It delegates processing to the `itemService.createManualInventoryReservation(body)` method.  
+- Once the service returns the result, it logs the final response and sends it back to the client.
 
-1. The controller receives the manual reservation request.
-2. It calls the service layer method `createManualInventoryReservation(body)` from the item service.
-3. The controller logs the final response before returning it to the caller.
+---
 
-## 2. Service Layer: Creating the Manual Reservation
+## 2. Service Layer – Entry into Business Logic
 
-- **Method:** `createManualInventoryReservation`
-- **Location:** Item Service
-- **Input:** The complete request (`InventoryManualReservationRequest`)
+### Method: createManualInventoryReservation  
+- **Location:** *Item Service*  
+- **Input:** The complete `InventoryManualReservationRequest`  
+- **Processing:**  
+  1. **Extract Manual Reservation Data:**  
+     - Retrieves the inner `InventoryManualReservationCreateRequest` from the request.
+  2. **Determine Reservation Flow Based on Flag:**  
+     - Checks the Boolean flag `transformWorkOrders` within the create request.
+     - **If `transformWorkOrders` is TRUE:**  
+       - Calls `processAndValidateTransformWorkOrdersForHardReservation` (not detailed in the snippet but following similar logic tailored to transformed work orders).
+     - **If `transformWorkOrders` is FALSE:**  
+       - Calls `processAndValidateProcessWorkOrdersForHardReservation` to validate and process the reservation.
 
-**Process:**
+---
 
-1. **Extract Reservation Details:**
-   - Retrieves `InventoryManualReservationCreateRequest` from the request body.
-2. **Determine Processing Path:**
-   - Checks the flag `transformWorkOrders` within the create request.
-   - If `TRUE`:
-     - Calls a method named `processAndValidateTransformWorkOrdersForHardReservation` to handle work order transformation reservations.
-   - If `FALSE`:
-     - Calls `processAndValidateProcessWorkOrdersForHardReservation` to handle the standard process.
+## 3. Validating Against Work Order Materials
 
-## 3. Validation and Processing Work Orders
+### Method: processAndValidateProcessWorkOrdersForHardReservation  
+- **Location:** *Item Service*  
+- **Inputs:**  
+  - The original `InventoryManualReservationRequest`  
+  - The extracted `InventoryManualReservationCreateRequest`  
+- **Steps:**  
+  1. **Fetch Work Order Materials:**  
+     - Invokes `workOrderDomainClient.listWorkOrderMaterials` using `manualReservationCreateRequest.getDemandSourceHeaderId()`.
+     - This client call sends a GET request to the work order domain to fetch materials associated with a given work order.
+  2. **Filter and Validate Material:**  
+     - Filters the returned list to find a material matching:
+       - `workOrderOperationId` equal to `demandSourceLineId`  
+       - `itemNumber` equal to the requested item number  
+     - Logs the reservation quantity validation step.
+  3. **Quantity Check:**  
+     - If a matching material is found, it compares the requested `reservationQuantity` with the provided `availableToReserve`.
+     - **Error Handling:**  
+       - If the reservation quantity exceeds the available quantity, a custom exception (`InventoryManualReservationCreationException`) is raised.
+  4. **Proceeding to Hard Reservation Processing:**  
+     - If validation passes, the flow continues by calling `processHardReservation`.
 
-- **Method:** `processAndValidateProcessWorkOrdersForHardReservation`
-- **Location:** Item Service
-- **Input:** The original request (`InventoryManualReservationRequest`) and the extracted create request
-
-**Process:**
-
-1. **Retrieve Work Order Materials:**
-   - Calls `workOrderDomainClient.listWorkOrderMaterials` using the `demandSourceHeaderId` from the create request.
-   - This call reaches out to the work order domain (via HTTP GET) to retrieve a list of materials.
-2. **Filter for Matching Material:**
-   - The returned list is filtered for a `WorkOrderMaterial` that matches:
-     - `workOrderOperationId` equals `demandSourceLineId`
-     - `itemNumber` equals the item number from the create request.
-3. **Validate Reservation Quantity:**
-   - Logs the attempt to validate the reservation quantity.
-   - If a matching work order material exists, compares:
-     - Reservation Quantity vs. Available-to-Reserve Quantity
-   - **Error Condition:**
-     - If the reservation quantity exceeds the available quantity, the flow terminates with an `InventoryManualReservationCreationException`.
-4. **Proceed to Hard Reservation Processing:**
-   - If validation passes, the method calls `processHardReservation` to either update an existing reservation or create a new one.
+---
 
 ## 4. Processing the Hard Reservation
 
-- **Method:** `processHardReservation`
-- **Location:** Item Service
-- **Input:** The original request and the create request
+### Method: processHardReservation  
+- **Location:** *Item Service*  
+- **Inputs:** The full reservation request and the create request  
+- **Decision Logic:**  
+  - **Existing Reservation Update:**  
+    - If the create request contains a non-empty `reservationId` (indicating an existing soft reservation), the method logs the update details (item number, sub-inventory code, locator id, lot number) and calls `updateManualReservation`.
+    - A logging callback (`doOnError`) captures any errors during the update process.
+  - **New Reservation Creation:**  
+    - If there is no `reservationId`, it logs that a new reservation is being created and calls `createAndUpdateManualReservation`.
+    - Likewise, errors during creation are logged.
 
-**Decision Point:**
+*Note:* Although the code snippet shows only one branch in detail, a similar pattern would exist for the `processAndValidateTransformWorkOrdersForHardReservation` method when the flag is true.
 
-- **Existing Reservation (Update):**
-  - **Condition:** The create request contains a non-empty `reservationId` (indicating a soft reservation exists).
-  - **Action:**
-    - Logs the details (item number, sub-inventory code, locator ID, lot number) for updating.
-    - Invokes `updateManualReservation` to convert the soft reservation to a hard reservation.
-    - Error handling is added via a `doOnError` callback to log any issues during update.
-- **New Reservation (Create):**
-  - **Condition:** No existing `reservationId` is provided.
-  - **Action:**
-    - Logs that a new reservation is being created.
-    - Calls `createAndUpdateManualReservation` to create and then update the reservation.
-    - Also uses a `doOnError` callback for error logging.
+---
 
 ## 5. Creating and Updating a New Reservation
 
-- **Method:** `createAndUpdateManualReservation`
-- **Location:** Item Service
+### Method: createAndUpdateManualReservation  
+- **Location:** *Item Service*  
+- **Steps:**  
+  1. **Create the Reservation:**  
+     - Calls the inventory domain client’s method `createManualInventoryReservation`, passing the create request.
+     - This client method issues an HTTP POST to `/manual-reservation` and logs the corresponding CURL command.
+     - It returns a `Mono<InventoryManualReservationResponse>` that contains the new `reservationId`.
+  2. **Update Reservation Details (Patch):**  
+     - Once the new reservation is created, the service builds an `InventoryReservationUpdateRequest` (the patch body) with key details:  
+       - `lotNumber`  
+       - `subinventoryCode`  
+       - `locatorId`
+     - It then calls `updateReservation` with the newly obtained `reservationId` and patch body to convert the reservation into a hard reservation.
 
-**Process:**
+---
 
-1. **Create the Manual Reservation:**
-   - Calls `client.createManualInventoryReservation(manualReservationCreateRequest)` on the inventory domain client.
-   - This sends a `POST` request to the `/manual-reservation` endpoint of the inventory domain.
-   - The client method logs a CURL command for debugging and returns a `Mono` of `InventoryManualReservationResponse` which includes the generated `reservationId`.
-2. **Update the Reservation to Hard Reservation:**
-   - Using the returned `reservationId`, it builds an `InventoryReservationUpdateRequest` (patch body) with key details:
-     - `lotNumber`
-     - `subinventoryCode`
-     - `locatorId`
-   - Calls `updateReservation(reservationId, patchBody)` to finalize the hard reservation.
+## 6. Client Calls – Communication with Inventory Domain
 
-## 6. Updating the Reservation (PATCH Operation)
+### a. Creating a Reservation
 
-- **Method:** `updateReservation`
-- **Location:** Inventory Domain Client
+#### Method: createManualInventoryReservation (Inventory Domain Client)  
+- **Location:** *Inventory Domain Client*  
+- **Process:**  
+  - Constructs a POST request to `/manual-reservation`.
+  - Sets headers such as `Authorization` (using an Azure token from the reactive context) and `Content-Type`.
+  - Logs a detailed CURL command for debugging purposes.
+  - Handles error statuses (HTTP 4xx/5xx) by mapping them to an `InventoryDomainException`.
+  - Parses the response into an `InventoryManualReservationResponse`.
 
-**Process:**
+### b. Updating the Reservation
 
-1. **Delegation to the Inventory Client:**
-   - Calls `updateInventoryReservation(reservationId, patchBody)` defined in the inventory client.
-2. **Inside `updateInventoryReservation`:**
-   - **HTTP PATCH Request:**
-     - Constructs the URL `/reservation/{reservationId}`.
-     - Sets the authorization header using the `AzureToken` from the context.
-     - Sets the request body with the update details.
-     - Accepts JSON responses.
-   - **Error Handling:**
-     - Uses `.onStatus` to intercept HTTP 4xx/5xx responses.
-     - Transforms error responses into an `InventoryDomainException`.
-   - **Mapping the Response:**
-     - On a successful response, maps the returned JSON into an `InventoryReservation` object.
-     - Logs the response.
-   - **Wrapping the Result:**
-     - Once the PATCH call succeeds, the response is wrapped into an `InventoryManualReservationResponse` and returned.
+#### Method: updateReservation (Inventory Domain Client)  
+- **Steps:**  
+  - Invokes `updateInventoryReservation` on the inventory client using the `reservationId` and patch body.
+  - Wraps the updated `InventoryReservation` into an `InventoryManualReservationResponse`.
+  
+#### Method: updateInventoryReservation (Inventory Client – Domain)  
+- **Location:** *Inventory Client: Domain*  
+- **Process:**  
+  - Sends an HTTP PATCH request to `/reservation/{id}`.
+  - Constructs the URL using the provided `reservationId` and sets the request body with the update details.
+  - Uses the Azure token for authentication and accepts JSON responses.
+  - Implements error handling for 4xx/5xx responses, converting them into an `InventoryDomainException`.
+  - Logs the response and returns a parsed `InventoryReservation`.
 
-## 7. Work Order Domain: Listing Work Order Materials
+---
 
-- **Method:** `listWorkOrderMaterials`
-- **Location:** Work Order Domain Controller
+## 7. Work Order Domain – Supporting Validation
 
-**Process:**
+### Method: listWorkOrderMaterials  
+- **Location:** *Work Order Domain Controller*  
+- **Process:**  
+  - Builds a GET request to the endpoint:  
+    `http://localhost:8081/work-orders/{workOrderId}/materials?limit=500`
+  - Sets required headers (Authorization, Accept) and logs a corresponding CURL command.
+  - Processes the paginated response to extract a list of `WorkOrderMaterial` objects.
+  - This data is then used in the validation step of `processAndValidateProcessWorkOrdersForHardReservation`.
 
-1. Constructs a `GET` request to the endpoint:
-   - `http://localhost:8081/work-orders/{workOrderId}/materials?limit=500`
-2. Sets the authorization and accept headers.
-3. Logs a CURL command for reference.
-4. Retrieves a paged response and maps it to a list of `WorkOrderMaterial` objects.
-5. This data is used in the validation step (see Section 3).
+---
 
-## 8. Final Outcome and Response
+## 8. Overall Flow Diagram
 
-- **Successful Flow:**
-  - If all validations pass and the hard reservation is either successfully updated or created, the final `InventoryManualReservationResponse` is sent back to the client with a `201` status.
-- **Error Flow:**
-  - If any error occurs (e.g., validation failure or HTTP error during PATCH/POST), the respective exception (such as `InventoryManualReservationCreationException`, `InventoryDomainException`, or `WorkOrderDomainException`) is thrown and logged.
+1. **Client Request:**
+   - **POST /manual-reservation** is received by the controller.
+2. **Controller:**
+   - Calls `itemService.createManualInventoryReservation(body)`.
+3. **Service Layer:**
+   - **Extracts** the `InventoryManualReservationCreateRequest`.
+   - **Branching Decision:**  
+     - If `transformWorkOrders` is true, calls `processAndValidateTransformWorkOrdersForHardReservation`.  
+     - Otherwise, calls `processAndValidateProcessWorkOrdersForHardReservation`.
+4. **Validation:**
+   - **processAndValidateProcessWorkOrdersForHardReservation:**  
+     - Calls `workOrderDomainClient.listWorkOrderMaterials(...)` to fetch work order materials.
+     - **Validates** that the requested reservation quantity does not exceed the available quantity.
+5. **Hard Reservation Processing:**
+   - **processHardReservation:**  
+     - **If an existing reservation exists:**  
+       - Calls `updateManualReservation` to update (convert soft to hard reservation).
+     - **If no reservation exists:**  
+       - Calls `createAndUpdateManualReservation` to create a new reservation.
+6. **Creating a New Reservation:**
+   - **createAndUpdateManualReservation:**  
+     - Calls `client.createManualInventoryReservation(...)` (via inventory domain client) to create the reservation.
+     - Uses the returned `reservationId` to build a patch body.
+     - Calls `updateReservation` to update the reservation details.
+7. **Updating the Reservation:**
+   - **updateReservation:**  
+     - Delegates to `client.updateInventoryReservation(...)` to perform the PATCH operation.
+     - Wraps the result in an `InventoryManualReservationResponse`.
+8. **Response:**
+   - The final response is logged and returned to the controller, which then sends it back to the client with HTTP status 201.
 
-## Summary Diagram of the Flow
+---
 
-```mermaid
-graph TD
-    A[POST /manual-reservation (Controller)] -->|Calls| B[ItemService.createManualInventoryReservation]
-    B -->|Extracts request and checks transformWorkOrders flag| C{transformWorkOrders flag}
-    C -->|False| D[processAndValidateProcessWorkOrdersForHardReservation]
-    
+## 9. Error Handling and Logging
+
+- **At Each Stage:**  
+  - The flow uses reactive error handling (via `.onStatus` and `Mono.error`) to capture HTTP errors and validation failures.
+  - Custom exceptions such as `InventoryManualReservationCreationException` and `InventoryDomainException` are thrown where appropriate.
+  - Logging is pervasive throughout the flow, including:
+    - CURL command logging in client calls (for debugging).
+    - Detailed logs on validation steps and reservation creation/update.
+    - Logging of any errors encountered during each stage.
+
+---
+
+## Conclusion
+
+This complete flow shows a layered approach:
+- The controller acts as the entry point.
+- The service layer determines which branch to follow based on the reservation’s transformation flag.
+- Validation is performed using work order material data from an external service.
+- Depending on whether a reservation already exists, the process either updates an existing reservation or creates a new one.
+- The client calls to the inventory domain handle both creation (via POST) and update (via PATCH), with robust error handling and logging throughout the process.
+
+This detailed explanation should provide management with a clear overview of the method call process and the complete flow of manual inventory reservation handling in the system.
