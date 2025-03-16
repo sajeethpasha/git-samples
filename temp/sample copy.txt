@@ -1,1 +1,0 @@
-sonar.search.javaAdditionalOpts=-Des.distribution.type=tar
